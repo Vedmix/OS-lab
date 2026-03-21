@@ -2,7 +2,7 @@
 #include <windows.h>
 #include <vector>
 #include <string.h>
-#define MAX_SIZE 100
+#define MAX_SIZE 250
 
 
 
@@ -21,6 +21,7 @@ int main()
         std::cout<<"2. Output list of disks (GetLogicalDrives)\n";
         std::cout<<"3. Driver Type (GetDriverType)\n";
         std::cout<<"4. Driver info (GetVolumeInformation)\n";
+        std::cout<<"5. Driver space (GetDiskFreeSpace)\n";
         std::cout<<"0. Exit\n\n";
         std::cin>>menu;
         std::cout<<"\n";
@@ -125,24 +126,63 @@ int main()
                     std::cout<<"File system: "<< FileSystemNameBuffer<< std::endl;
                     std::cout<<"Max len of name: " << *lpMaximumComponentLength<< std::endl;
                     std::cout<<"File system flags: " << flags<<std::endl;
-                    if(flags & FILE_CASE_SENSITIVE_SEARCH) std::cout<<"The specified volume supports case-sensitive file names."<<std::endl;
-                    if(flags & FILE_CASE_PRESERVED_NAMES) std::cout<<"The specified volume supports preserved case of file names when it places a name on disk."<<std::endl;
-                    if(flags & FILE_UNICODE_ON_DISK) std::cout<<"The specified volume supports Unicode in file names as they appear on disk."<<std::endl;
-                    if(flags & FILE_PERSISTENT_ACLS) std::cout<<"The specified volume preserves and enforces access control lists (ACL). For example, the NTFS file system preserves and enforces ACLs, and the FAT file system does not."<<std::endl;
-                    if(flags & FILE_FILE_COMPRESSION) std::cout<<"The specified volume supports file-based compression."<<std::endl;
-                    if(flags & FILE_VOLUME_QUOTAS) std::cout<<"The specified volume supports disk quotas."<<std::endl;
-                    if(flags & FILE_SUPPORTS_SPARSE_FILES) std::cout<<"The specified volume supports sparse files."<<std::endl;
-                    if(flags & FILE_SUPPORTS_REPARSE_POINTS) std::cout<<"The specified volume supports reparse points."<<std::endl;
-                    if(flags & FILE_SUPPORTS_REMOTE_STORAGE) std::cout<<"The file system supports remote storage."<<std::endl;
-                    if(flags & FILE_RETURNS_CLEANUP_RESULT_INFO) std::cout<<"On a successful cleanup operation, the file system returns information that describes additional actions taken during cleanup, such as deleting the file."<<std::endl;
-                    if(flags & FILE_SUPPORTS_POSIX_UNLINK_RENAME) std::cout<<"The file system supports POSIX-style delete and rename operations."<<std::endl;
-                    if(flags & FILE_VOLUME_IS_COMPRESSED) std::cout<<"The specified volume supports case-sensitive file names."<<std::endl;
-                    if(flags & FILE_SUPPORTS_OBJECT_IDS) std::cout<<"The specified volume supports case-sensitive file names."<<std::endl;
-                    if(flags & FILE_CASE_SENSITIVE_SEARCH) std::cout<<"The specified volume supports case-sensitive file names."<<std::endl;
-                    if(flags & FILE_CASE_SENSITIVE_SEARCH) std::cout<<"The specified volume supports case-sensitive file names."<<std::endl;
-                    if(flags & FILE_CASE_SENSITIVE_SEARCH) std::cout<<"The specified volume supports case-sensitive file names."<<std::endl;
-                    if(flags & FILE_CASE_SENSITIVE_SEARCH) std::cout<<"The specified volume supports case-sensitive file names."<<std::endl;
-                    if(flags & FILE_CASE_SENSITIVE_SEARCH) std::cout<<"The specified volume supports case-sensitive file names."<<std::endl;
+    
+                    if(flags & FILE_CASE_SENSITIVE_SEARCH) std::cout<<"=The specified volume supports case-sensitive file names.="<<std::endl;
+                    if(flags & FILE_CASE_PRESERVED_NAMES) std::cout<<"=The specified volume supports preserved case of file names when it places a name on disk.="<<std::endl;
+                    if(flags & FILE_UNICODE_ON_DISK) std::cout<<"=The specified volume supports Unicode in file names as they appear on disk.="<<std::endl;
+                    if(flags & FILE_PERSISTENT_ACLS) std::cout<<"=The specified volume preserves and enforces access control lists (ACL). For example, the NTFS file system preserves and enforces ACLs, and the FAT file system does not.="<<std::endl;
+                    if(flags & FILE_FILE_COMPRESSION) std::cout<<"=The specified volume supports file-based compression.="<<std::endl;
+                    if(flags & FILE_VOLUME_QUOTAS) std::cout<<"=The specified volume supports disk quotas.="<<std::endl;
+                    if(flags & FILE_SUPPORTS_SPARSE_FILES) std::cout<<"=The specified volume supports sparse files.="<<std::endl;
+                    if(flags & FILE_SUPPORTS_REPARSE_POINTS) std::cout<<"=The specified volume supports reparse points.="<<std::endl;
+                    if(flags & FILE_SUPPORTS_REMOTE_STORAGE) std::cout<<"=The file system supports remote storage.="<<std::endl;
+                    if(flags & FILE_RETURNS_CLEANUP_RESULT_INFO) std::cout<<"=On a successful cleanup operation, the file system returns information that describes additional actions taken during cleanup, such as deleting the file.="<<std::endl;
+                    if(flags & FILE_SUPPORTS_POSIX_UNLINK_RENAME) std::cout<<"=The file system supports POSIX-style delete and rename operations.="<<std::endl;
+                    if(flags & FILE_VOLUME_IS_COMPRESSED) std::cout<<"=The specified volume is a compressed volume, for example, a DoubleSpace volume.="<<std::endl;
+                    if(flags & FILE_SUPPORTS_OBJECT_IDS) std::cout<<"=The specified volume supports object identifiers.="<<std::endl;
+                    if(flags & FILE_SUPPORTS_ENCRYPTION) std::cout<<"=The specified volume supports the Encrypted File System (EFS).="<<std::endl;
+                    if(flags & FILE_NAMED_STREAMS) std::cout<<"=The specified volume supports named streams.="<<std::endl;
+                    if(flags & FILE_READ_ONLY_VOLUME) std::cout<<"=The specified volume is read-only.="<<std::endl;
+                    if(flags & FILE_SEQUENTIAL_WRITE_ONCE) std::cout<<"=The specified volume supports a single sequential write.="<<std::endl;
+                    if(flags & FILE_SUPPORTS_TRANSACTIONS) std::cout<<"=The specified volume supports transactions. For more information.="<<std::endl;
+                    if(flags & FILE_SUPPORTS_HARD_LINKS) std::cout<<"=The specified volume supports hard links. For more information.="<<std::endl;
+                    if(flags & FILE_SUPPORTS_EXTENDED_ATTRIBUTES) std::cout<<"=The specified volume supports extended attributes.="<<std::endl;
+                    if(flags & FILE_SUPPORTS_OPEN_BY_FILE_ID) std::cout<<"=The file system supports open by FileID.="<<std::endl;
+                    if(flags & FILE_SUPPORTS_USN_JOURNAL) std::cout<<"=The specified volume supports update sequence number (USN) journals.="<<std::endl;
+                    if(flags & FILE_SUPPORTS_INTEGRITY_STREAMS) std::cout<<"=The file system supports integrity streams.="<<std::endl;
+                    if(flags & FILE_SUPPORTS_BLOCK_REFCOUNTING) std::cout<<"=The specified volume supports sharing logical clusters between files on the same volume.="<<std::endl;
+                    if(flags & FILE_SUPPORTS_SPARSE_VDL) std::cout<<"=The file system tracks whether each cluster of a file contains valid data.="<<std::endl;
+                    if(flags & FILE_DAX_VOLUME) std::cout<<"=The specified volume is a direct access (DAX) volume.="<<std::endl;
+                    if(flags & FILE_SUPPORTS_GHOSTING) std::cout<<"=The file system supports ghosting.="<<std::endl;
+
+                }
+                else{
+                    std::cout<<"Error"<<std::endl;
+                }
+
+            }
+            break;
+            case 5:
+            {
+                if(listofdrivers.empty()){
+                    std::cout<<"Please check your drives first (Option 1-2 in menu)"<<std::endl; 
+                    break;
+                }
+                
+                DWORD SectorsPerCluster, BytesPerSector, NumberOfFreeClusters,TotalNumberOfClusters;
+                LPDWORD lpSectorsPerCluster = &SectorsPerCluster;
+                LPDWORD lpBytesPerSector = &BytesPerSector;
+                LPDWORD lpNumberOfFreeClusters = &NumberOfFreeClusters;
+                LPDWORD lpTotalNumberOfClusters = &TotalNumberOfClusters;
+                std::cout<<"Please select a disk number"<<std::endl;
+                std::cin>>id;
+                BOOL space = GetDiskFreeSpaceA(listofdrivers[id].c_str(),lpSectorsPerCluster,lpBytesPerSector,lpNumberOfFreeClusters,lpTotalNumberOfClusters);
+                if(space){
+
+                    std::cout<<"Sectors per clusters: " << SectorsPerCluster<<std::endl;
+                    std::cout<<"Bytes per sector: " << BytesPerSector<<std::endl;
+                    std::cout<<"Num of free clusters : " << NumberOfFreeClusters<<std::endl;
+                    std::cout<<"Total clusters: " << TotalNumberOfClusters<<std::endl;
                 }
                 else{
                     std::cout<<"Error"<<std::endl;
