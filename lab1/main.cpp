@@ -4,8 +4,44 @@
 #include <string.h>
 #define MAX_SIZE 250
 
+using namespace std;
 
+string Trim(const string& str) {
+    size_t first = str.find_first_not_of(" \t\n\r");
+    if (first == string::npos) return "";
+    size_t last = str.find_last_not_of(" \t\n\r");
+    return str.substr(first, last - first + 1);
+}
 
+bool CheckPath(const string& path, bool& isDirectory) {
+    DWORD attrs = GetFileAttributes(path.c_str());
+    if (attrs == INVALID_FILE_ATTRIBUTES) {
+        return false;
+    }
+    isDirectory = (attrs & FILE_ATTRIBUTE_DIRECTORY) != 0;
+    return true;
+}
+
+string GetCopyFileName(const string& originalPath) {
+    string fileName = GetFileName(originalPath);
+    size_t dotPos = fileName.find_last_of(".");
+    
+    if (dotPos != string::npos) {
+        string nameWithoutExt = fileName.substr(0, dotPos);
+        string ext = fileName.substr(dotPos);
+        return nameWithoutExt + "_copy" + ext;
+    } else {
+        return fileName + "_copy";
+    }
+}
+
+string GetFileName(const string& path) {
+    size_t pos = path.find_last_of("\\");
+    if (pos != string::npos) {
+        return path.substr(pos + 1);
+    }
+    return path;
+}
 
 int main()
 {   
