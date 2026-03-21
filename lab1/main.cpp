@@ -6,7 +6,7 @@
 
 using namespace std;
 
-string trim(const string& str){
+string trimmed(const string& str){
     size_t first = str.find_first_not_of(" \t\n\r");
     if(first == string::npos)return "";
     size_t last = str.find_last_not_of(" \t\n\r");
@@ -44,13 +44,13 @@ string getCopyFileName(const string& originalPath){
 }
 
 bool createFile(const string& dirPath, const string& fileName, const string& content = ""){
-    string fullPath = trim(dirPath)+ "\\" + fileName;
+    string fullPath = trimmed(dirPath)+ "\\" + fileName;
     
     cout<<"Creating file: "<<fullPath<<endl;
     
     bool isDir;
-    if(!checkPath(trim(dirPath), isDir)|| !isDir){
-        cout<<"Error: directory does not exist: "<<trim(dirPath)<<endl;
+    if(!checkPath(trimmed(dirPath), isDir)|| !isDir){
+        cout<<"Error: directory does not exist: "<<trimmed(dirPath)<<endl;
         return false;
     }
     
@@ -86,16 +86,16 @@ bool createFile(const string& dirPath, const string& fileName, const string& con
 
 bool copyFile(const string& sourcePath, const string& destDir){
     bool isDir;
-    if(!checkPath(trim(sourcePath), isDir)){
-        cout<<"Error: directory "<<trim(sourcePath)<<" is incorrect"<< endl;
+    if(!checkPath(trimmed(sourcePath), isDir)){
+        cout<<"Error: directory "<<trimmed(sourcePath)<<" is incorrect"<< endl;
         return false;
-    }else if(!checkPath(trim(destDir), isDir)){
-        cout<<"Error: directory "<<trim(destDir)<<" is incorrect"<< endl;
+    }else if(!checkPath(trimmed(destDir), isDir)){
+        cout<<"Error: directory "<<trimmed(destDir)<<" is incorrect"<< endl;
         return false;
     }
 
-    string copyFileName = getCopyFileName(trim(sourcePath));
-    string destPath = trim(destDir)+ "\\" + copyFileName;
+    string copyFileName = getCopyFileName(trimmed(sourcePath));
+    string destPath = trimmed(destDir)+ "\\" + copyFileName;
     
     bool destExists;
     bool destIsDir;
@@ -111,11 +111,72 @@ bool copyFile(const string& sourcePath, const string& destDir){
         }
     }
     
-    if(CopyFile(trim(sourcePath).c_str(), destPath.c_str(), FALSE)){
+    if(CopyFile(trimmed(sourcePath).c_str(), destPath.c_str(), FALSE)){
         cout<<"File successfully copied!"<<endl;
         return true;
     }else{
         cout<<"Error: failed to copy file!"<<endl;
+        return false;
+    }
+}
+
+bool moveFile(const string& sourcePath, const string& destPath) {
+    string src = trimmed(sourcePath);
+    string dst = trimmed(destPath);
+    
+    bool isDir;
+    if (!checkPath(src, isDir)) {
+        cout << "Error: source file does not exist!" << endl;
+        return false;
+    }
+    
+    if (isDir) {
+        cout << "Error: source is a directory!" << endl;
+        return false;
+    }
+    
+    string fileName = getFileName(src);
+    
+    if (checkPath(dst, isDir) && isDir) {
+        dst = dst + "\\" + fileName;
+    }
+    
+    bool destExists;
+    bool destIsDir;
+    destExists = checkPath(dst, destIsDir);
+    
+    if (destExists && !destIsDir) {
+        cout << "Destination file already exists!" << endl;
+        cout << "Overwrite? (y/n): ";
+        char choice;
+        cin >> choice;
+        if (tolower(choice) != 'y') {
+            cout << "Move cancelled." << endl;
+            return false;
+        }
+        if (!DeleteFile(dst.c_str())) {
+            cout << "Error: failed to delete existing file!" << endl;
+            return false;
+        }
+    } else if (destExists && destIsDir) {
+        cout << "Error: destination is a directory! Please specify a file name." << endl;
+        return false;
+    }
+    
+    if (MoveFile(src.c_str(), dst.c_str())) {
+        cout << "File successfully moved!" << endl;
+        cout << "From: " << src << endl;
+        cout << "To: " << dst << endl;
+        return true;
+    } else {
+        DWORD error = GetLastError();
+        if (error == ERROR_ACCESS_DENIED) {
+            cout << "Error: Access denied!" << endl;
+        } else if (error == ERROR_NOT_SAME_DEVICE) {
+            cout << "Error: Cannot move between different drives!" << endl;
+        } else {
+            cout << "Error: failed to move file! Error code: " << error << endl;
+        }
         return false;
     }
 }
@@ -137,6 +198,7 @@ int main()
         cout<<"5. Driver space (GetDiskFreeSpace)\n";
         cout<<"6. Create file in directory"<<endl;
         cout<<"7. Copy file in directory"<<endl;
+        cout<<"8. Move file in directory"<<endl;
         cout<<"0. Exit\n\n";
         cin>>menu;
         cout<<"\n";
@@ -278,7 +340,7 @@ int main()
             }
             break;
             case 5:
-           {
+            {
                 if(listofdrivers.empty()){
                     cout<<"Please check your drives first (Option 1-2 in menu)"<<endl; 
                     break;
@@ -305,7 +367,8 @@ int main()
 
             }
             break;
-            case 6:{
+            case 6:
+            {
                 string dirPath;
                 string fileName;
                 string content;
@@ -319,14 +382,28 @@ int main()
                 createFile(dirPath, fileName, content);
             }
             break;
-            case 7:{
-                string sourcePath, destDir;
+            case 7:
+            {
+                string sourcePath;
+                string destDir;
                 cout<<"Enter source file path: ";
                 cin.ignore();
                 getline(cin, sourcePath);
                 cout<<"Enter destination directory: ";
                 getline(cin, destDir);
                 copyFile(sourcePath, destDir);
+            }
+            break;
+            case 8:
+            {
+                string sourcePath;
+                string destPath;
+                cout<<"Enter source file path: ";
+                cin.ignore();
+                getline(cin, sourcePath);
+                cout<<"Enter destination (file or directory): ";
+                getline(cin, destPath);
+                moveFile(sourcePath, destPath);
             }
             break;
             case 0:
