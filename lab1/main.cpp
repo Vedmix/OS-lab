@@ -6,39 +6,51 @@
 
 using namespace std;
 
-string trim(const string& str) {
+string trim(const string& str){
     size_t first = str.find_first_not_of(" \t\n\r");
-    if (first == string::npos) return "";
+    if(first == string::npos)return "";
     size_t last = str.find_last_not_of(" \t\n\r");
     return str.substr(first, last - first + 1);
 }
 
-bool checkPath(const string& path, bool& isDirectory) {
+bool checkPath(const string& path, bool& isDirectory){
     DWORD attrs = GetFileAttributes(path.c_str());
-    if (attrs == INVALID_FILE_ATTRIBUTES) {
+    if(attrs == INVALID_FILE_ATTRIBUTES){
         return false;
     }
-    isDirectory = (attrs & FILE_ATTRIBUTE_DIRECTORY) != 0;
+    isDirectory = (attrs & FILE_ATTRIBUTE_DIRECTORY)!= 0;
     return true;
 }
 
-
-string GetFileName(const string& path) {
+string getFileName(const string& path){
     size_t pos = path.find_last_of("\\");
-    if (pos != string::npos) {
+    if(pos != string::npos){
         return path.substr(pos + 1);
     }
     return path;
 }
 
-bool createFile(const string& dirPath, const string& fileName, const string& content = "") {
-    string fullPath = trim(dirPath) + "\\" + fileName;
+string getCopyFileName(const string& originalPath){
+    string fileName = getFileName(originalPath);
+    size_t dotPos = fileName.find_last_of(".");
     
-    cout << "Creating file: " << fullPath << endl;
+    if(dotPos != string::npos){
+        string nameWithoutExt = fileName.substr(0, dotPos);
+        string ext = fileName.substr(dotPos);
+        return nameWithoutExt + "_copy" + ext;
+    }else{
+        return fileName + "_copy";
+    }
+}
+
+bool createFile(const string& dirPath, const string& fileName, const string& content = ""){
+    string fullPath = trim(dirPath)+ "\\" + fileName;
+    
+    cout<<"Creating file: "<<fullPath<<endl;
     
     bool isDir;
-    if (!checkPath(trim(dirPath), isDir) || !isDir) {
-        cout << "Error: directory does not exist: " << trim(dirPath) << endl;
+    if(!checkPath(trim(dirPath), isDir)|| !isDir){
+        cout<<"Error: directory does not exist: "<<trim(dirPath)<<endl;
         return false;
     }
     
@@ -52,26 +64,61 @@ bool createFile(const string& dirPath, const string& fileName, const string& con
         NULL
     );
     
-    if (hFile == INVALID_HANDLE_VALUE) {
-        cout << "Error: failed to create file!" << endl;
+    if(hFile == INVALID_HANDLE_VALUE){
+        cout<<"Error: failed to create file!"<<endl;
         return false;
     }
     
-    if (!content.empty()) {
+    if(!content.empty()){
         DWORD bytesWritten;
-        if (!WriteFile(hFile, content.c_str(), content.length(), &bytesWritten, NULL)) {
-            cout << "Error: failed to write to file!" << endl;
+        if(!WriteFile(hFile, content.c_str(), content.length(), &bytesWritten, NULL)){
+            cout<<"Error: failed to write to file!"<<endl;
             CloseHandle(hFile);
             return false;
         }
-        cout << "Written " << bytesWritten << " bytes to file" << endl;
+        cout<<"Written "<<bytesWritten<<" bytes to file"<<endl;
     }
     
     CloseHandle(hFile);
-    cout << "File successfully created: " << fullPath << endl;
+    cout<<"File successfully created: "<<fullPath<<endl;
     return true;
 }
 
+bool copyFile(const string& sourcePath, const string& destDir){
+    bool isDir;
+    if(!checkPath(trim(sourcePath), isDir)){
+        cout<<"Error: directory "<<trim(sourcePath)<<" is incorrect"<< endl;
+        return false;
+    }else if(!checkPath(trim(destDir), isDir)){
+        cout<<"Error: directory "<<trim(destDir)<<" is incorrect"<< endl;
+        return false;
+    }
+
+    string copyFileName = getCopyFileName(trim(sourcePath));
+    string destPath = trim(destDir)+ "\\" + copyFileName;
+    
+    bool destExists;
+    bool destIsDir;
+    destExists = checkPath(destPath, destIsDir);
+    
+    if(destExists && !destIsDir){
+        cout<<"File already exists! Overwrite? (y/n): ";
+        char choice;
+        cin>>choice;
+        if(tolower(choice)!= 'y'){
+            cout<<"Copy cancelled."<<endl;
+            return false;
+        }
+    }
+    
+    if(CopyFile(trim(sourcePath).c_str(), destPath.c_str(), FALSE)){
+        cout<<"File successfully copied!"<<endl;
+        return true;
+    }else{
+        cout<<"Error: failed to copy file!"<<endl;
+        return false;
+    }
+}
 
 int main()
 {   
@@ -89,37 +136,38 @@ int main()
         cout<<"4. Driver info (GetVolumeInformation)\n";
         cout<<"5. Driver space (GetDiskFreeSpace)\n";
         cout<<"6. Create file in directory"<<endl;
+        cout<<"7. Copy file in directory"<<endl;
         cout<<"0. Exit\n\n";
         cin>>menu;
         cout<<"\n";
         count = 1;
         switch(menu){
             case 1:  
-            {
+           {
                 count = 1;
                 listofdrivers.clear();
                 DWORD result =  GetLogicalDriveStringsA(MAX_SIZE, lpBuffer); //string buffer (ANSI)
-                if((result > 0) && (result<=MAX_SIZE)){
+                if((result > 0)&& (result<=MAX_SIZE)){
                     cout<<"Your drives: "<<endl;
                     char* drive = lpBuffer;
                     while(*drive){
                         cout<<count<<". "<<drive<<endl;
                         listofdrivers.push_back(string(drive));
-                        drive += strlen(drive) + 1;
+                        drive += strlen(drive)+ 1;
                         count++;
                     }
                 }
             }
             break;
             case 2:
-            {   
+           {   
                 listofdrivers.clear();
                 count = 1;
                 DWORD drives = GetLogicalDrives(); //bit mask
                 cout<<"Your drives: "<<endl;
                 for(d = 'A';d <= 'Z'; d++){
                     if(drives & 1){
-                        string disk = string(1,d) + ":\\";
+                        string disk = string(1,d)+ ":\\";
                         cout<<count<<". "<<disk<<endl;
                         listofdrivers.push_back(disk);
                         count++;
@@ -129,7 +177,7 @@ int main()
             }
             break;
             case 3:
-            {
+           {
                 if(listofdrivers.empty()){
                     cout<<"Please check your drives first (Option 1-2 in menu)"<<endl; 
                     break;
@@ -155,7 +203,7 @@ int main()
                     }
                     break;
                     case 4:{
-                    cout<<"DRIVE_CDROM (The drive is a remote (network) drive. )"<<endl;
+                    cout<<"DRIVE_CDROM (The drive is a remote (network)drive. )"<<endl;
                     }
                     break;
                     case 5:{
@@ -170,7 +218,7 @@ int main()
             }
             break;
             case 4:
-            {
+           {
                 if(listofdrivers.empty()){
                     cout<<"Please check your drives first (Option 1-2 in menu)"<<endl; 
                     break;
@@ -188,39 +236,39 @@ int main()
                 cin>>id;
                 BOOL info = GetVolumeInformationA(listofdrivers[id].c_str(),lpVolumeNameBuffer,MAX_SIZE,lpVolumeSerialNumber,lpMaximumComponentLength,lpFileSystemFlags,lpFileSystemNameBuffer,MAX_SIZE);
                 if(info){
-                    cout<<"Tom: " << VolumeNameBuffer<< endl;
-                    cout<<"Serial number: " << serial << endl;
+                    cout<<"Tom: "<<VolumeNameBuffer<< endl;
+                    cout<<"Serial number: "<<serial<<endl;
                     cout<<"File system: "<< FileSystemNameBuffer<< endl;
-                    cout<<"Max len of name: " << *lpMaximumComponentLength<< endl;
-                    cout<<"File system flags: " << flags<<endl;
+                    cout<<"Max len of name: "<<*lpMaximumComponentLength<< endl;
+                    cout<<"File system flags: "<<flags<<endl;
     
-                    if(flags & FILE_CASE_SENSITIVE_SEARCH) cout<<"=The specified volume supports case-sensitive file names.="<<endl;
-                    if(flags & FILE_CASE_PRESERVED_NAMES) cout<<"=The specified volume supports preserved case of file names when it places a name on disk.="<<endl;
-                    if(flags & FILE_UNICODE_ON_DISK) cout<<"=The specified volume supports Unicode in file names as they appear on disk.="<<endl;
-                    if(flags & FILE_PERSISTENT_ACLS) cout<<"=The specified volume preserves and enforces access control lists (ACL). For example, the NTFS file system preserves and enforces ACLs, and the FAT file system does not.="<<endl;
-                    if(flags & FILE_FILE_COMPRESSION) cout<<"=The specified volume supports file-based compression.="<<endl;
-                    if(flags & FILE_VOLUME_QUOTAS) cout<<"=The specified volume supports disk quotas.="<<endl;
-                    if(flags & FILE_SUPPORTS_SPARSE_FILES) cout<<"=The specified volume supports sparse files.="<<endl;
-                    if(flags & FILE_SUPPORTS_REPARSE_POINTS) cout<<"=The specified volume supports reparse points.="<<endl;
-                    if(flags & FILE_SUPPORTS_REMOTE_STORAGE) cout<<"=The file system supports remote storage.="<<endl;
-                    if(flags & FILE_RETURNS_CLEANUP_RESULT_INFO) cout<<"=On a successful cleanup operation, the file system returns information that describes additional actions taken during cleanup, such as deleting the file.="<<endl;
-                    if(flags & FILE_SUPPORTS_POSIX_UNLINK_RENAME) cout<<"=The file system supports POSIX-style delete and rename operations.="<<endl;
-                    if(flags & FILE_VOLUME_IS_COMPRESSED) cout<<"=The specified volume is a compressed volume, for example, a DoubleSpace volume.="<<endl;
-                    if(flags & FILE_SUPPORTS_OBJECT_IDS) cout<<"=The specified volume supports object identifiers.="<<endl;
-                    if(flags & FILE_SUPPORTS_ENCRYPTION) cout<<"=The specified volume supports the Encrypted File System (EFS).="<<endl;
-                    if(flags & FILE_NAMED_STREAMS) cout<<"=The specified volume supports named streams.="<<endl;
-                    if(flags & FILE_READ_ONLY_VOLUME) cout<<"=The specified volume is read-only.="<<endl;
-                    if(flags & FILE_SEQUENTIAL_WRITE_ONCE) cout<<"=The specified volume supports a single sequential write.="<<endl;
-                    if(flags & FILE_SUPPORTS_TRANSACTIONS) cout<<"=The specified volume supports transactions. For more information.="<<endl;
-                    if(flags & FILE_SUPPORTS_HARD_LINKS) cout<<"=The specified volume supports hard links. For more information.="<<endl;
-                    if(flags & FILE_SUPPORTS_EXTENDED_ATTRIBUTES) cout<<"=The specified volume supports extended attributes.="<<endl;
-                    if(flags & FILE_SUPPORTS_OPEN_BY_FILE_ID) cout<<"=The file system supports open by FileID.="<<endl;
-                    if(flags & FILE_SUPPORTS_USN_JOURNAL) cout<<"=The specified volume supports update sequence number (USN) journals.="<<endl;
-                    if(flags & FILE_SUPPORTS_INTEGRITY_STREAMS) cout<<"=The file system supports integrity streams.="<<endl;
-                    if(flags & FILE_SUPPORTS_BLOCK_REFCOUNTING) cout<<"=The specified volume supports sharing logical clusters between files on the same volume.="<<endl;
-                    if(flags & FILE_SUPPORTS_SPARSE_VDL) cout<<"=The file system tracks whether each cluster of a file contains valid data.="<<endl;
-                    if(flags & FILE_DAX_VOLUME) cout<<"=The specified volume is a direct access (DAX) volume.="<<endl;
-                    if(flags & FILE_SUPPORTS_GHOSTING) cout<<"=The file system supports ghosting.="<<endl;
+                    if(flags & FILE_CASE_SENSITIVE_SEARCH)cout<<"=The specified volume supports case-sensitive file names.="<<endl;
+                    if(flags & FILE_CASE_PRESERVED_NAMES)cout<<"=The specified volume supports preserved case of file names when it places a name on disk.="<<endl;
+                    if(flags & FILE_UNICODE_ON_DISK)cout<<"=The specified volume supports Unicode in file names as they appear on disk.="<<endl;
+                    if(flags & FILE_PERSISTENT_ACLS)cout<<"=The specified volume preserves and enforces access control lists (ACL). For example, the NTFS file system preserves and enforces ACLs, and the FAT file system does not.="<<endl;
+                    if(flags & FILE_FILE_COMPRESSION)cout<<"=The specified volume supports file-based compression.="<<endl;
+                    if(flags & FILE_VOLUME_QUOTAS)cout<<"=The specified volume supports disk quotas.="<<endl;
+                    if(flags & FILE_SUPPORTS_SPARSE_FILES)cout<<"=The specified volume supports sparse files.="<<endl;
+                    if(flags & FILE_SUPPORTS_REPARSE_POINTS)cout<<"=The specified volume supports reparse points.="<<endl;
+                    if(flags & FILE_SUPPORTS_REMOTE_STORAGE)cout<<"=The file system supports remote storage.="<<endl;
+                    if(flags & FILE_RETURNS_CLEANUP_RESULT_INFO)cout<<"=On a successful cleanup operation, the file system returns information that describes additional actions taken during cleanup, such as deleting the file.="<<endl;
+                    if(flags & FILE_SUPPORTS_POSIX_UNLINK_RENAME)cout<<"=The file system supports POSIX-style delete and rename operations.="<<endl;
+                    if(flags & FILE_VOLUME_IS_COMPRESSED)cout<<"=The specified volume is a compressed volume, for example, a DoubleSpace volume.="<<endl;
+                    if(flags & FILE_SUPPORTS_OBJECT_IDS)cout<<"=The specified volume supports object identifiers.="<<endl;
+                    if(flags & FILE_SUPPORTS_ENCRYPTION)cout<<"=The specified volume supports the Encrypted File System (EFS).="<<endl;
+                    if(flags & FILE_NAMED_STREAMS)cout<<"=The specified volume supports named streams.="<<endl;
+                    if(flags & FILE_READ_ONLY_VOLUME)cout<<"=The specified volume is read-only.="<<endl;
+                    if(flags & FILE_SEQUENTIAL_WRITE_ONCE)cout<<"=The specified volume supports a single sequential write.="<<endl;
+                    if(flags & FILE_SUPPORTS_TRANSACTIONS)cout<<"=The specified volume supports transactions. For more information.="<<endl;
+                    if(flags & FILE_SUPPORTS_HARD_LINKS)cout<<"=The specified volume supports hard links. For more information.="<<endl;
+                    if(flags & FILE_SUPPORTS_EXTENDED_ATTRIBUTES)cout<<"=The specified volume supports extended attributes.="<<endl;
+                    if(flags & FILE_SUPPORTS_OPEN_BY_FILE_ID)cout<<"=The file system supports open by FileID.="<<endl;
+                    if(flags & FILE_SUPPORTS_USN_JOURNAL)cout<<"=The specified volume supports update sequence number (USN)journals.="<<endl;
+                    if(flags & FILE_SUPPORTS_INTEGRITY_STREAMS)cout<<"=The file system supports integrity streams.="<<endl;
+                    if(flags & FILE_SUPPORTS_BLOCK_REFCOUNTING)cout<<"=The specified volume supports sharing logical clusters between files on the same volume.="<<endl;
+                    if(flags & FILE_SUPPORTS_SPARSE_VDL)cout<<"=The file system tracks whether each cluster of a file contains valid data.="<<endl;
+                    if(flags & FILE_DAX_VOLUME)cout<<"=The specified volume is a direct access (DAX)volume.="<<endl;
+                    if(flags & FILE_SUPPORTS_GHOSTING)cout<<"=The file system supports ghosting.="<<endl;
 
                 }
                 else{
@@ -230,7 +278,7 @@ int main()
             }
             break;
             case 5:
-            {
+           {
                 if(listofdrivers.empty()){
                     cout<<"Please check your drives first (Option 1-2 in menu)"<<endl; 
                     break;
@@ -246,10 +294,10 @@ int main()
                 BOOL space = GetDiskFreeSpaceA(listofdrivers[id].c_str(),lpSectorsPerCluster,lpBytesPerSector,lpNumberOfFreeClusters,lpTotalNumberOfClusters);
                 if(space){
 
-                    cout<<"Sectors per clusters: " << SectorsPerCluster<<endl;
-                    cout<<"Bytes per sector: " << BytesPerSector<<endl;
-                    cout<<"Num of free clusters : " << NumberOfFreeClusters<<endl;
-                    cout<<"Total clusters: " << TotalNumberOfClusters<<endl;
+                    cout<<"Sectors per clusters: "<<SectorsPerCluster<<endl;
+                    cout<<"Bytes per sector: "<<BytesPerSector<<endl;
+                    cout<<"Num of free clusters : "<<NumberOfFreeClusters<<endl;
+                    cout<<"Total clusters: "<<TotalNumberOfClusters<<endl;
                 }
                 else{
                     cout<<"Error"<<endl;
@@ -257,7 +305,7 @@ int main()
 
             }
             break;
-            case 6: {
+            case 6:{
                 string dirPath;
                 string fileName;
                 string content;
@@ -269,6 +317,16 @@ int main()
                 cout<<"Enter file content (Enter for empty): ";
                 getline(cin, content);
                 createFile(dirPath, fileName, content);
+            }
+            break;
+            case 7:{
+                string sourcePath, destDir;
+                cout<<"Enter source file path: ";
+                cin.ignore();
+                getline(cin, sourcePath);
+                cout<<"Enter destination directory: ";
+                getline(cin, destDir);
+                copyFile(sourcePath, destDir);
             }
             break;
             case 0:
