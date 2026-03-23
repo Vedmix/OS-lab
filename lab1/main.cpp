@@ -239,7 +239,7 @@ bool moveFile(const string& sourcePath, const string& destPath){
             cout<<"Destination file already exists!"<<endl;
             cout<<"Overwrite? (y/n): ";
             char choice;
-            cin >> choice;
+            cin>>choice;
         if(tolower(choice) != 'y'){
                 cout<<"Move cancelled."<<endl;
                 return false;
@@ -270,6 +270,63 @@ bool moveFile(const string& sourcePath, const string& destPath){
             return false;
         }
 }
+bool moveFileEx(const string& sourcePath, const string& destPath, DWORD flags = 0){
+    string src = trimmed(sourcePath);
+    string dst = trimmed(destPath);
+    
+    bool isDir;
+    if(!checkPath(src, isDir)){
+        cout<<"Error: source file does not exist!"<<endl;
+        return false;
+    }
+    
+    if(isDir){
+        cout<<"Error: source is a directory!"<<endl;
+        return false;
+    }
+    
+    string fileName = getFileName(src);
+    
+    bool destExists = checkPath(dst, isDir);
+    
+    if(checkPath(dst, isDir) && isDir){
+        dst = dst + "\\" + fileName;
+        cout<<"Destination is a directory. File will be moved as: "<<dst<<endl;
+        destExists = checkPath(dst, isDir);
+    }
+    
+    if(destExists && !isDir){
+        if(!(flags & MOVEFILE_REPLACE_EXISTING)){
+            cout<<"Warning: Destination file already exists!"<<endl;
+            cout<<"Overwrite? (y/n): ";
+            char choice;
+            cin>>choice;
+            if(tolower(choice) != 'y'){
+                cout<<"Move cancelled."<<endl;
+                return false;
+            }
+            flags |= MOVEFILE_REPLACE_EXISTING;
+        }
+    }
+    
+    if(MoveFileEx(src.c_str(), dst.c_str(), flags)){
+        cout<<"File successfully moved!"<<endl;
+        cout<<"From: "<<src<<endl;
+        cout<<"To: "<<dst<<endl;
+        return true;
+    } else {
+        DWORD error = GetLastError();
+        if(error == ERROR_ACCESS_DENIED){
+            cout<<"Error: Access denied! Try running as administrator."<<endl;
+        } else if(error == ERROR_NOT_SAME_DEVICE){
+            cout<<"Error: Cannot move between different drives!"<<endl;
+            cout<<"Use COPY_ALLOWED flag to enable cross-drive move."<<endl;
+        } else {
+            cout<<"Error: failed to move file! Error code: "<<error<<endl;
+        }
+        return false;
+    }
+}
 
 int main()
 {   
@@ -281,23 +338,26 @@ int main()
     vector<string> listofdrivers;
     while(flag){
         cout<<"\n=====Menu=====\n";
-        cout<<"1. Output list of disks (GetLogicalDriveStrings)\n";
-        cout<<"2. Output list of disks (GetLogicalDrives)\n";
-        cout<<"3. Driver Type (GetDriverType)\n";
-        cout<<"4. Driver info (GetVolumeInformation)\n";
-        cout<<"5. Driver space (GetDiskFreeSpace)\n";
-        cout<<"6. Create file in directory"<<endl;
-        cout<<"7. Copy file in directory"<<endl;
-        cout<<"8. Move file in directory"<<endl;
-        cout<<"9. Create directory"<<endl;
+        cout<<"0.  Exit\n";
+        cout<<"1.  Output list of disks (GetLogicalDriveStrings)\n";
+        cout<<"2.  Output list of disks (GetLogicalDrives)\n";
+        cout<<"3.  Driver Type (GetDriverType)\n";
+        cout<<"4.  Driver info (GetVolumeInformation)\n";
+        cout<<"5.  Driver space (GetDiskFreeSpace)\n";
+        cout<<"6.  Create file in directory"<<endl;
+        cout<<"7.  Copy file in directory"<<endl;
+        cout<<"8.  Move file in directory"<<endl;
+        cout<<"9.  Create directory"<<endl;
         cout<<"10. Remove directory"<<endl;
-        cout<<"0. Exit\n\n";
+        cout<<"11. Move file (Extended)"<<endl;
+        
+        cout<<"Choose function: ";
         cin>>menu;
         cout<<"\n";
         count = 1;
         switch(menu){
             case 1:  
-          {
+            {
                 count = 1;
                 listofdrivers.clear();
                 DWORD result =  GetLogicalDriveStringsA(MAX_SIZE, lpBuffer); //string buffer (ANSI)
@@ -314,7 +374,7 @@ int main()
             }
             break;
             case 2:
-          {   
+            {   
                 listofdrivers.clear();
                 count = 1;
                 DWORD drives = GetLogicalDrives(); //bit mask
@@ -331,7 +391,7 @@ int main()
             }
             break;
             case 3:
-          {
+            {
                 if(listofdrivers.empty()){
                     cout<<"Please check your drives first (Option 1-2 in menu)"<<endl; 
                     break;
@@ -372,7 +432,7 @@ int main()
             }
             break;
             case 4:
-          {
+            {
                 if(listofdrivers.empty()){
                     cout<<"Please check your drives first (Option 1-2 in menu)"<<endl; 
                     break;
@@ -432,7 +492,7 @@ int main()
             }
             break;
             case 5:
-           {
+            {
                 if(listofdrivers.empty()){
                     cout<<"Please check your drives first (Option 1-2 in menu)"<<endl; 
                     break;
@@ -460,7 +520,7 @@ int main()
             }
             break;
             case 6:
-           {
+            {
                 string dirPath;
                 string fileName;
                 string content;
@@ -475,7 +535,7 @@ int main()
             }
             break;
             case 7:
-           {
+            {
                 string sourcePath;
                 string destDir;
                 cout<<"Enter source file path: ";
@@ -487,7 +547,7 @@ int main()
             }
             break;
             case 8:
-           {
+            {
                 string sourcePath;
                 string destPath;
                 cout<<"Enter source file path: ";
@@ -499,7 +559,7 @@ int main()
             }
             break;
             case 9: 
-           {   
+            {   
                 string dirPath;
                 string dirName;
                 cout<<"Enter directory Path: ";
@@ -511,13 +571,43 @@ int main()
                 break;
             }
             case 10:
-           {
+            {
                 string dirPath;
                 string dirName;
                 cout<<"Enter directory Path: ";
                 cin.ignore();
                 getline(cin, dirPath);
                 removeDirectory(dirPath);
+                break;
+            }
+            case 11: 
+            {
+                string sourcePath, destPath;
+                int flagChoice;
+                cout<<"Enter source file path: ";
+                cin.ignore();
+                getline(cin, sourcePath);
+                cout<<"Enter destination (file or directory): ";
+                getline(cin, destPath);
+                
+                cout<<"\nSelect MoveFileEx flags:"<<endl;
+                cout<<"1. Normal move (no special flags)"<<endl;
+                cout<<"2. Replace existing file"<<endl;
+                cout<<"3. Allow copy between different drives"<<endl;
+                cout<<"4. Replace + Allow copy"<<endl;
+                cout<<"Choose flag option: ";
+                cin>>flagChoice;
+                
+                DWORD flags = 0;
+                switch(flagChoice){
+                    case 1: flags = 0; break;
+                    case 2: flags = MOVEFILE_REPLACE_EXISTING; break;
+                    case 3: flags = MOVEFILE_COPY_ALLOWED; break;
+                    case 4: flags = MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED; break;
+                    default: flags = 0;
+                }
+                
+                moveFileEx(sourcePath, destPath, flags);
                 break;
             }
             case 0:
