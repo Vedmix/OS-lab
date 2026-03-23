@@ -43,6 +43,38 @@ string getCopyFileName(const string& originalPath){
     }
 }
 
+bool createDirectory(const string& dirLocation, const string& dirName) {
+    string fullPath = trimmed(dirLocation) + "\\" + trimmed(dirName);
+    
+    bool isDir;
+    if (!checkPath(trimmed(dirLocation), isDir) || !isDir) {
+        cout << "Error: Parent directory does not exist: " << dirLocation << endl;
+        return false;
+    }
+    
+    if (checkPath(fullPath, isDir)) {
+        if (isDir) {
+            cout << "Warning: Directory already exists!" << endl;
+            return false;
+        }
+    }
+    
+    if (CreateDirectory(fullPath.c_str(), NULL)) {
+        cout << "Directory successfully created: " << fullPath << endl;
+        return true;
+    } else {
+        DWORD error = GetLastError();
+        if (error == ERROR_ALREADY_EXISTS) {
+            cout << "Error: Directory already exists!" << endl;
+        } else if (error == ERROR_PATH_NOT_FOUND) {
+            cout << "Error: Parent directory does not exist!" << endl;
+        } else {
+            cout << "Error: failed to create directory! Error code: " << error << endl;
+        }
+        return false;
+    }
+}
+
 bool createFile(const string& dirPath, const string& fileName, const string& content = ""){
     string fullPath = trimmed(dirPath)+ "\\" + fileName;
     
@@ -199,6 +231,7 @@ int main()
         cout<<"6. Create file in directory"<<endl;
         cout<<"7. Copy file in directory"<<endl;
         cout<<"8. Move file in directory"<<endl;
+        cout<<"9. Create directory"<<endl;
         cout<<"0. Exit\n\n";
         cin>>menu;
         cout<<"\n";
@@ -406,6 +439,18 @@ int main()
                 moveFile(sourcePath, destPath);
             }
             break;
+            case 9: 
+            {   
+                string dirLocation;
+                string dirName;
+                cout << "Enter directory location: ";
+                cin.ignore();
+                getline(cin, dirLocation);
+                cout << "Enter directory name: ";
+                getline(cin, dirName);
+                createDirectory(dirLocation, dirName);
+                break;
+            }
             case 0:
             flag = 0;
             break;
