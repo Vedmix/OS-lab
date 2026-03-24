@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <vector>
 #include <string.h>
+#include <iomanip>
 #define MAX_SIZE 250
 
 using namespace std;
@@ -12,6 +13,24 @@ string trimmed(const string& str){
     size_t last = str.find_last_not_of(" \t\n\r");
     return str.substr(first, last - first + 1);
 }
+
+void PrintFileTimeForTime(const FILETIME& ftime,const string& labe){
+        if(ftime.dwHighDateTime == 0 && ftime.dwLowDateTime ==0){
+            cout<<labe<<": Not avalible"<<endl;
+            return;
+        }
+        SYSTEMTIME stime;
+        FileTimeToSystemTime(&ftime,&stime);
+
+        cout<<labe<<": "<<std::setfill('0')<<std::setw(2)<<stime.wDay<<"."<<std::setw(2)<<stime.wMonth<<"."<<std::setw(4)<<stime.wYear<<" "<<std::setw(2)<<stime.wHour<<":"<<std::setw(2)<<stime.wMinute<<":"<<std::setw(2)<<stime.wSecond<<std::setfill(' ')<<endl;
+    }
+
+void PrintFileTimeForHandle(const FILETIME& ft, const char* label) {
+	SYSTEMTIME st;
+	FileTimeToSystemTime(&ft, &st);
+	std::cout << label << ": " << std::setfill('0')<< st.wDay << "." << std::setw(2) << st.wMonth << "." << st.wYear << " "<< std::setw(2) << st.wHour << ":" << std::setw(2) << st.wMinute << ":" << std::setw(2) << st.wSecond << std::endl;
+}
+
 
 bool checkPath(const string& path, bool& isDirectory){
     DWORD attrs = GetFileAttributes(path.c_str());
@@ -294,6 +313,8 @@ bool moveFileEx(const string& sourcePath, const string& destPath, DWORD flags = 
         cout<<"Destination is a directory. File will be moved as: "<<dst<<endl;
         destExists = checkPath(dst, isDir);
     }
+
+    
     
     if(destExists && !isDir){
         if(!(flags & MOVEFILE_REPLACE_EXISTING)){
@@ -350,6 +371,12 @@ int main()
         cout<<"9.  Create directory"<<endl;
         cout<<"10. Remove directory"<<endl;
         cout<<"11. Move file (Extended)"<<endl;
+        cout<<"12. File Attribute (GetFileAttributes)"<<endl;
+        cout<<"13. Set Attribute (SetFileAttributes)"<<endl;
+        cout<<"14. Get file info (GetFileInformationByHandle)"<<endl;
+        cout<<"15. Get file time (GetFileTime)"<<endl;
+        cout<<"16. Set file time (SetFileTime)"<<endl;
+
         
         cout<<"Choose function: ";
         cin>>menu;
@@ -610,6 +637,363 @@ int main()
                 moveFileEx(sourcePath, destPath, flags);
                 break;
             }
+            case 12:
+            {
+                string pFile;
+                cout<<"Enter source file path: ";
+                cin.ignore();
+                getline(cin, pFile);
+                DWORD attribute = GetFileAttributesA(pFile.c_str());
+                if(attribute == INVALID_FILE_ATTRIBUTES){
+                    cout<<"Error"<<endl;
+                    break;
+                }
+                cout<<"Attributes of file "<<pFile<<": "<<endl;
+
+                if(attribute & FILE_ATTRIBUTE_DIRECTORY) cout<<"catalog"<<endl;
+                if(attribute & FILE_ATTRIBUTE_READONLY)cout<<"read only"<<endl;
+                if(attribute & FILE_ATTRIBUTE_HIDDEN)cout<<"hidden"<<endl;
+                if(attribute & FILE_ATTRIBUTE_SYSTEM)cout<<"system"<<endl;
+                if(attribute & FILE_ATTRIBUTE_ARCHIVE)cout<<"archive"<<endl;
+                if(attribute & FILE_ATTRIBUTE_TEMPORARY)cout<<"temp"<<endl;
+                if(attribute & FILE_ATTRIBUTE_NORMAL)cout<<"normal file"<<endl;
+                
+            }
+            break;
+            case 13:
+            {
+                int indexAttribute;
+                string npFile;
+                bool bAttribute;
+                cout<<"Enter source file path: ";
+                cin.ignore();
+                getline(cin, npFile);
+                DWORD newAttribute;
+                cout<<"=Choose attribute to add="<<endl;
+                cout<<"1. archive"<<endl;
+                cout<<"2. hidden"<<endl;
+                cout<<"3. normal"<<endl;
+                cout<<"4. not content"<<endl;
+                cout<<"5. offline"<<endl;
+                cout<<"6. read only"<<endl;
+                cout<<"7. system"<<endl;
+                cout<<"8. temp"<<endl;
+                cout<<"0. exit"<<endl;
+                cin>>indexAttribute;
+                switch(indexAttribute){
+                    case 1:
+                    {
+                        newAttribute = FILE_ATTRIBUTE_ARCHIVE;
+                        bAttribute = SetFileAttributesA(npFile.c_str(),newAttribute);
+                        if(bAttribute){
+                            cout<<"Attributes changed"<<endl;;
+                        }
+                        else{
+                            cout<<"Error"<<endl;
+                        }
+                    }
+                    break;
+                    case 2:
+                    {
+                        newAttribute = FILE_ATTRIBUTE_HIDDEN;
+                        bAttribute = SetFileAttributesA(npFile.c_str(),newAttribute);
+                        if(bAttribute){
+                            cout<<"Attributes changed"<<endl;;
+                        }
+                        else{
+                            cout<<"Error"<<endl;
+                        }
+                    }
+                    break;
+                    case 3:
+                    {
+                        newAttribute = FILE_ATTRIBUTE_NORMAL;
+                        bAttribute = SetFileAttributesA(npFile.c_str(),newAttribute);
+                        if(bAttribute){
+                            cout<<"Attributes changed"<<endl;;
+                        }
+                        else{
+                            cout<<"Error"<<endl;
+                        }
+                    }
+                    break;
+                    case 4:
+                    {
+                        newAttribute = FILE_ATTRIBUTE_NOT_CONTENT_INDEXED;
+                        bAttribute = SetFileAttributesA(npFile.c_str(),newAttribute);
+                        if(bAttribute){
+                            cout<<"Attributes changed"<<endl;;
+                        }
+                        else{
+                            cout<<"Error"<<endl;
+                        }
+                    }
+                    break;
+                    case 5:
+                    {
+                        newAttribute = FILE_ATTRIBUTE_OFFLINE;
+                        bAttribute = SetFileAttributesA(npFile.c_str(),newAttribute);
+                        if(bAttribute){
+                            cout<<"Attributes changed"<<endl;;
+                        }
+                        else{
+                            cout<<"Error"<<endl;
+                        }
+                    }
+                    break;
+                    case 6:
+                    {
+                        newAttribute = FILE_ATTRIBUTE_READONLY;
+                        bAttribute = SetFileAttributesA(npFile.c_str(),newAttribute);
+                        if(bAttribute){
+                            cout<<"Attributes changed"<<endl;;
+                        }
+                        else{
+                            cout<<"Error"<<endl;
+                        }
+                    }
+                    break;
+                    case 7:
+                    {
+                        newAttribute = FILE_ATTRIBUTE_SYSTEM;
+                        bAttribute = SetFileAttributesA(npFile.c_str(),newAttribute);
+                        if(bAttribute){
+                            cout<<"Attributes changed"<<endl;;
+                        }
+                        else{
+                            cout<<"Error"<<endl;
+                        }
+                    }
+                    break;
+                    case 8:
+                    {
+                        newAttribute = FILE_ATTRIBUTE_TEMPORARY;
+                        bAttribute = SetFileAttributesA(npFile.c_str(),newAttribute);
+                        if(bAttribute){
+                            cout<<"Attributes changed"<<endl;;
+                        }
+                        else{
+                            cout<<"Error"<<endl;
+                        }
+                    }
+                    break;
+                    case 0:
+                    break;
+                }
+                    
+            }
+            break;
+            case 14:
+            {
+                string phFile;
+                ULONGLONG fileSize, fileId;
+                BY_HANDLE_FILE_INFORMATION lpFileInformation;
+                cout<<"Enter source file path: ";
+                cin.ignore();
+                getline(cin, phFile);
+                HANDLE hInfFile = CreateFile(
+                    phFile.c_str(),
+                    GENERIC_READ,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE,
+                    NULL,
+                    OPEN_EXISTING,
+                    FILE_ATTRIBUTE_NORMAL,
+                    NULL
+                );
+                if(hInfFile == INVALID_HANDLE_VALUE){
+                    cout<<"Error"<<endl;
+                    break;
+                }
+                if(GetFileInformationByHandle(hInfFile, &lpFileInformation)){
+                    cout << "Info about File: "<< phFile <<endl;;
+                    cout << "Attributes: ";
+                    if (lpFileInformation.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)cout << "Catalog ";
+                    if (lpFileInformation.dwFileAttributes & FILE_ATTRIBUTE_READONLY)cout << "Read only ";
+                    if (lpFileInformation.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN)cout << "Hidden ";
+                    if (lpFileInformation.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM)cout << "System ";
+                    cout <<endl;;
+                    PrintFileTimeForHandle(lpFileInformation.ftCreationTime, "Created");
+                    PrintFileTimeForHandle(lpFileInformation.ftLastAccessTime, "Last access");
+                    PrintFileTimeForHandle(lpFileInformation.ftLastWriteTime, "Last change");
+        
+                    fileSize = (static_cast<ULONGLONG>(lpFileInformation.nFileSizeHigh) << 32) | lpFileInformation.nFileSizeLow;
+                    cout << "\nSize: " << fileSize << " bytes"<<endl;
+                    cout << "Serial number: " << hex << lpFileInformation.dwVolumeSerialNumber << dec << endl;;
+	                cout << "Number of strong adresses: " << lpFileInformation.nNumberOfLinks << endl;
+                    fileId = (static_cast<ULONGLONG>(lpFileInformation.nFileIndexHigh) << 32) | lpFileInformation.nFileIndexLow;
+  	                cout << "Unic ID of File: 0x" << std::hex << fileId << std::dec << endl;
+       
+	                if (lpFileInformation.nNumberOfLinks > 1) {
+                        cout << "File have " << lpFileInformation.nNumberOfLinks << " strong adresses"<<endl;;
+                    }
+
+                    }
+                else{
+                    cout<<"Error getting data";
+                }
+                CloseHandle(hInfFile);
+            }
+            break;
+            case 15:
+            {
+                FILETIME createTime,accessTime,writeTime;
+                string gtFile;
+                cout<<"Enter source file path: ";
+                cin.ignore();
+                getline(cin, gtFile);
+                HANDLE hgtFile = CreateFile(
+                    gtFile.c_str(),
+                    GENERIC_READ,
+                    FILE_SHARE_READ,
+                    NULL,
+                    OPEN_EXISTING,
+                    FILE_ATTRIBUTE_NORMAL,
+                    NULL
+                );
+                if(hgtFile == INVALID_HANDLE_VALUE){
+                    cout<<"Error"<<endl;
+                    break;
+                }
+                if(GetFileTime(hgtFile,&createTime,&accessTime,&writeTime)){
+                    cout<<"File: "<<endl;
+                    PrintFileTimeForTime(createTime, "Creted");
+                    PrintFileTimeForTime(accessTime, "Last accessed");
+                    PrintFileTimeForTime(writeTime, "Last changed");
+                }
+                else{
+                    cout<<"Failed to get file time"<<endl;
+                }
+                CloseHandle(hgtFile);
+                
+            }
+            break;
+            case 16:
+            {
+                string stFile;
+                int TimeID,year, month, day, hour, minute, second;
+                DWORD flags,attrs;
+                HANDLE hstFile;
+                FILETIME verifyCreate, verifyAccess, verifyWrite;
+                cout << "Enter source file path: ";
+                cin.ignore();
+                getline(cin, stFile);
+    
+                if (!stFile.empty() && stFile.front() == '"' && stFile.back() == '"') {
+                    stFile = stFile.substr(1, stFile.length() - 2);
+                }
+    
+    
+                cout << "\n=== Select time mode ===" << endl;
+                cout << "1. Set to current system time" << endl;
+                cout << "2. Set custom date and time" << endl;
+                cout << "Choose (1 or 2): ";
+                cin >> TimeID;
+    
+                attrs = GetFileAttributesA(stFile.c_str());
+                if (attrs == INVALID_FILE_ATTRIBUTES) {
+                    cout << "Error: File does not exist!" << endl;
+                    break;
+                }
+    
+                flags = FILE_ATTRIBUTE_NORMAL;
+                if (attrs & FILE_ATTRIBUTE_DIRECTORY) {
+                    flags = FILE_FLAG_BACKUP_SEMANTICS;
+                    cout << "Note: Target is a directory" << endl;
+                }
+    
+                hstFile = CreateFile(
+                    stFile.c_str(),
+                    FILE_WRITE_ATTRIBUTES,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE,
+                    NULL,
+                    OPEN_EXISTING,
+                    flags,
+                    NULL
+                );
+    
+                if (hstFile == INVALID_HANDLE_VALUE) {
+                    cout << "Error opening file. Code: " << GetLastError() << endl;
+                    break;
+                 }
+    
+                SYSTEMTIME st = {0};  
+                FILETIME newTime;
+    
+                switch (TimeID) {
+                    case 1:
+                    {
+                        GetSystemTime(&st);
+                        cout << "Setting file time to current system time..." << endl;
+                    }
+                    break;
+                    case 2:
+                    {
+                        cout << "\nEnter custom date and time:" << endl;
+                        cout << "Year: ";
+                        cin >> year;
+                        cout << "Month: ";
+                        cin >> month;
+                        cout << "Day: ";
+                        cin >> day;
+                        cout << "Hour: ";
+                        cin >> hour;
+                        cout << "Minute: ";
+                        cin >> minute;
+                        cout << "Second: ";
+                        cin >> second;
+
+                        st.wYear = year;
+                        st.wMonth = month;
+                        st.wDay = day;
+                        st.wHour = hour;
+                        st.wMinute = minute;
+                        st.wSecond = second;
+                        st.wMilliseconds = 0;
+            
+
+                if (st.wYear < 1601 || st.wMonth < 1 || st.wMonth > 12 || 
+                        st.wDay < 1 || st.wDay > 31 || st.wHour > 23 || 
+                        st.wMinute > 59 || st.wSecond > 59) {
+                        cout << "Error: Invalid date or time!" << endl;
+                        CloseHandle(hstFile);
+                        break;
+                    }
+            
+                    cout << "Setting file time to custom date" << endl;
+                    }
+                    break;
+        
+                    default:
+                    {
+                        cout << "Error: Invalid choice(1-2)" << endl;
+                        CloseHandle(hstFile);
+                        break;
+                    }
+                }
+    
+                if (TimeID == 1 || TimeID == 2) {
+
+                    if (!SystemTimeToFileTime(&st, &newTime)) {
+                        cout << "Error code: " << GetLastError() << endl;
+                    } else {
+            
+                    if (SetFileTime(hstFile, &newTime, &newTime, &newTime)) {
+                        cout << "File times updated" << endl;
+                    if (GetFileTime(hstFile, &verifyCreate, &verifyAccess, &verifyWrite)) {
+                        cout << "\nNew file times:" << endl;
+                        PrintFileTimeForTime(verifyCreate, "  Created");
+                        PrintFileTimeForTime(verifyAccess, "  Accessed");
+                        PrintFileTimeForTime(verifyWrite, "  Modified");
+                    }
+                    } else {
+                        cout << "Error code: " << GetLastError() << endl;
+                    }
+                    }
+                }
+    
+                CloseHandle(hstFile);
+            }
+            break;
             case 0:
             flag = 0;
             break;
