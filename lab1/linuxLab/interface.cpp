@@ -4,10 +4,10 @@ Interface::Interface(){}
 Interface::~Interface(){}
 
 void Interface::show(){
-    bool flag=true;
+    bool running=true;
     int userChoice;
     bool wrongOption=false;
-    while(flag){
+    while(running){
         system("clear");
         if(wrongOption){
             std::cout << "WRONG OPTION!\nTRY AGAIN!\n";
@@ -19,36 +19,36 @@ void Interface::show(){
         std::cout<<"2.  Copy file in directory"<<std::endl;
         std::cout<<"3.  Move file in directory"<<std::endl;
         std::cout<<"4.  Create directory"<<std::endl;
-        std::cout<<"5. Remove directory"<<std::endl;
+        std::cout<<"5.  Remove directory"<<std::endl;
         std::cout<<"Choose option: ";
         std::cin >> userChoice;
         system("clear");
         switch (userChoice)
         {
         case 0:
-            flag=false;
+            running=false;
             std::cout << "=======EXITING=======\n";
             std::cout << "Exiting...\n";
             break;
         case 1:
             std::cout << "==========CREATE FILE==========\n";
-
+            runFileCreating();
             break;
         case 2:
             std::cout << "==========COPY FILE==========\n";
-
+            runFileCopying();
             break;
         case 3:
             std::cout << "==========MOVE FILE==========\n";
-
+            runFileMoving();
             break;
         case 4:
             std::cout << "==========CREATE DIRECTORY==========\n";
-
+            runDirectoryCreating();
             break;
         case 5:
             std::cout << "==========REMOVE DIRECTORY==========\n";
-
+            runDirectoryRemoving();
             break;
         default:
             wrongOption=true;
@@ -56,8 +56,8 @@ void Interface::show(){
         }
         if(!wrongOption){
             std::cout << "Press ENTER to continue...\n";
-            getchar();
-            getchar();
+            std::cin.ignore();
+            std::cin.get();
         }
     }
 }
