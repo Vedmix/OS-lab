@@ -1,6 +1,14 @@
 #include "interface.hpp"
 
-Interface::Interface(){}
+Interface::Interface(){
+    system("clear");
+    int Align, blockSizeMltpl;
+    std::cout << "Введите выравнивание буфера в килобайтах: ";
+    std::cin >> Align;
+    std::cout << "Введите множитель для блока копирования (во сколько раз больше выравнивания): ";
+    std::cin >> blockSizeMltpl;
+    fileCpy.setAlign(Align, blockSizeMltpl);
+}
 Interface::~Interface(){}
 
 void Interface::show(){
@@ -17,9 +25,6 @@ void Interface::show(){
         std::cout<<"0.  Exit\n";
         std::cout<<"1.  Create file in directory"<<std::endl;
         std::cout<<"2.  Copy file in directory"<<std::endl;
-        std::cout<<"3.  Move file in directory"<<std::endl;
-        std::cout<<"4.  Create directory"<<std::endl;
-        std::cout<<"5.  Remove directory"<<std::endl;
         std::cout<<"Choose option: ";
         std::cin >> userChoice;
         system("clear");
@@ -38,18 +43,6 @@ void Interface::show(){
             std::cout << "==========COPY FILE==========\n";
             runFileCopying();
             break;
-        case 3:
-            std::cout << "==========MOVE FILE==========\n";
-            runFileMoving();
-            break;
-        case 4:
-            std::cout << "==========CREATE DIRECTORY==========\n";
-            runDirectoryCreating();
-            break;
-        case 5:
-            std::cout << "==========REMOVE DIRECTORY==========\n";
-            runDirectoryRemoving();
-            break;
         default:
             wrongOption=true;
             break;
@@ -61,3 +54,21 @@ void Interface::show(){
         }
     }
 }
+
+void Interface::runCopyTests(){}
+
+void Interface::runFileCopying(){
+    std::string destDir, srcPath;
+    std::cout << "Введите путь к файлу, который копировать: ";
+    std::cin >> srcPath;
+    std::cout << "Введите директорию, куда копировать файл: ";
+    std::cin>>destDir;
+    if(fileCpy.copyFile(srcPath, destDir)){
+        std::cout << "Копирование успешно завершено\n";
+    }
+    else{
+        std::cout << "Произошла ошибка!\n";
+    }
+}
+
+void Interface::runFileCreating(){}

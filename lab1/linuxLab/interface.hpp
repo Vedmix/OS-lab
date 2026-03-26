@@ -1,14 +1,16 @@
 #pragma once
 #include <iostream>
+#include "FileCopier.hpp"
+#include "TestCopying.hpp"
 
 class Interface
 {
 private:
+    FileCopier fileCpy;
+    TestCopying cpyTests;
     void runFileCreating(); //Создание файла
     void runFileCopying(); //КОпирование файла
-    void runFileMoving(); //Перемещание файла
-    void runDirectoryCreating(); //Создание директории
-    void runDirectoryRemoving(); //Удаление директории
+    void runCopyTests();
 public:
     Interface();
     ~Interface();
