@@ -13,21 +13,6 @@ void FileCopier::setAlign(const size_t _ALIGN, const int blockSizeMultiplier){
     blockSize=ALIGN*blockSizeMultiplier;
 }
 
-#include "FileCopier.hpp"
-
-FileCopier::FileCopier(){}
-
-FileCopier::FileCopier(const size_t _ALIGN, const int blockSizeMultiplier):ALIGN(_ALIGN*1024){
-    blockSize = ALIGN*blockSizeMultiplier;
-}
-
-FileCopier::~FileCopier(){}
-
-void FileCopier::setAlign(const size_t _ALIGN, const int blockSizeMultiplier){
-    ALIGN=_ALIGN*1024;
-    blockSize=ALIGN*blockSizeMultiplier;
-}
-
 bool FileCopier::copyFile(const std::string& srcPath, const std::string& destDir){
     //извлекаем имя файла из srcPath и склеиваем с destDir
     std::string filename = std::filesystem::path(srcPath).filename();
@@ -91,7 +76,6 @@ bool FileCopier::copyFile(const std::string& srcPath, const std::string& destDir
     //До начала основного цикла вручную запускаем первую операцию чтения, чтобы к первой итерации цикла данные уже были в readBuf
 
     //toRead — либо полный блок, либо сколько осталось до конца выровненного файла
-
     size_t toRead = std::min((off_t)blockSize, alignedSize - readOffset);
     io_prep_pread(&readCb, srcFd, readBuf, toRead, readOffset); //заполняет структуру iocb для операции чтения count байт из fd начиная со смещения offset в буфер buf
     cbs[0] = &readCb;
