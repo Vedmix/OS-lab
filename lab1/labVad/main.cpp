@@ -38,16 +38,16 @@ int main()
         
         switch(menu){
             case 1:  
-                showDrivesByGetLogicalDrives(listofdrivers);
+                showLogicalDrives(listofdrivers);
                 break;
             case 2:
-                showDrivesByGetLogicalDrivestrings(listofdrivers);
+                showLogicalDrivesSTR(listofdrivers);
                 break;
             case 3:
                 showDriveType(listofdrivers);
                 break;
             case 4:
-                showVolumeInformation(listofdrivers);
+                showDriverInformation(listofdrivers);
                 break;
             case 5:
                 showDiskFreeSpace(listofdrivers);

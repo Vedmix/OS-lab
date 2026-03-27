@@ -9,7 +9,7 @@ using namespace std;
 
 #define MAX_SIZE 250
 
-void showVolumeInformation(const vector<string>& listofdrivers);
-void showDriveType(const vector<string>& listofdrivers);
-void showDrivesByGetLogicalDrives(vector<string>& listofdrivers);
-void showDrivesByGetLogicalDrivestrings(vector<string>& listofdrivers);
+void showLogicalDrives(vector<string>& listofdrivers); //Вывод списка дисков (через битовую маску)
+void showLogicalDrivesSTR(vector<string>& listofdrivers); //Вывод списка дисков (через список строк)
+void showDriveType(const vector<string>& listofdrivers); //Вывод типа диска
+void showDriverInformation(const vector<string>& listofdrivers);//Вывод детальной  информации о томе
