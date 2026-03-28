@@ -17,5 +17,6 @@ public:
     ~FileCopier();
     bool copyFile(const std::string& srcPath, const std::string& destDir);
 
+    FileCopier& operator=(const FileCopier& _fileCpy);
     void setAlign(const size_t _ALIGN, const int blockSizeMultiplier);
 };

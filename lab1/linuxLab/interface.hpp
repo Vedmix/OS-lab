@@ -7,10 +7,10 @@ class Interface
 {
 private:
     FileCopier fileCpy;
-    TestCopying cpyTests;
-    void runFileCreating(); //Создание файла
+    TestCopying cpyTester;
     void runFileCopying(); //КОпирование файла
     void runCopyTests();
+    void runChangingAlign();
 public:
     Interface();
     ~Interface();

@@ -13,6 +13,15 @@ void FileCopier::setAlign(const size_t _ALIGN, const int blockSizeMultiplier){
     blockSize=ALIGN*blockSizeMultiplier;
 }
 
+FileCopier& FileCopier::operator=(const FileCopier& _fileCpy){
+    if(this==&_fileCpy){
+        return *this;
+    }
+    ALIGN=_fileCpy.ALIGN;
+    blockSize=_fileCpy.blockSize;
+    return *this;
+}
+
 bool FileCopier::copyFile(const std::string& srcPath, const std::string& destDir){
     //извлекаем имя файла из srcPath и склеиваем с destDir
     std::string filename = std::filesystem::path(srcPath).filename();

@@ -2,12 +2,7 @@
 
 Interface::Interface(){
     system("clear");
-    int Align, blockSizeMltpl;
-    std::cout << "Введите выравнивание буфера в килобайтах: ";
-    std::cin >> Align;
-    std::cout << "Введите множитель для блока копирования (во сколько раз больше выравнивания): ";
-    std::cin >> blockSizeMltpl;
-    fileCpy.setAlign(Align, blockSizeMltpl);
+    runChangingAlign();
 }
 Interface::~Interface(){}
 
@@ -23,8 +18,9 @@ void Interface::show(){
         }
         std::cout<<"=====Menu=====\n";
         std::cout<<"0.  Exit\n";
-        std::cout<<"1.  Create file in directory"<<std::endl;
-        std::cout<<"2.  Copy file in directory"<<std::endl;
+        std::cout<<"1.  Copy file in directory"<<std::endl;
+        std::cout<<"2.  Do copy tests" << std::endl;
+        std::cout<<"3.  Change buffer align" << std::endl;
         std::cout<<"Choose option: ";
         std::cin >> userChoice;
         system("clear");
@@ -36,12 +32,16 @@ void Interface::show(){
             std::cout << "Exiting...\n";
             break;
         case 1:
-            std::cout << "==========CREATE FILE==========\n";
-            runFileCreating();
-            break;
-        case 2:
             std::cout << "==========COPY FILE==========\n";
             runFileCopying();
+            break;
+        case 2:
+            std::cout << "==========COPY TESTS==========\n";
+            runCopyTests();
+            break;
+        case 3:
+            std::cout << "==========CHANGE ALIGN==========\n";
+            runChangingAlign();
             break;
         default:
             wrongOption=true;
@@ -55,7 +55,12 @@ void Interface::show(){
     }
 }
 
-void Interface::runCopyTests(){}
+void Interface::runCopyTests(){
+    int numTests;
+    std::cout << "Введите количество файлов для копирования: ";
+    std::cin >> numTests;
+    cpyTester.doTests(numTests, fileCpy);
+}
 
 void Interface::runFileCopying(){
     std::string destDir, srcPath;
@@ -71,4 +76,11 @@ void Interface::runFileCopying(){
     }
 }
 
-void Interface::runFileCreating(){}
+void Interface::runChangingAlign(){
+    int Align, blockSizeMltpl;
+    std::cout << "Введите выравнивание буфера в килобайтах: ";
+    std::cin >> Align;
+    std::cout << "Введите множитель для блока копирования (во сколько раз больше выравнивания): ";
+    std::cin >> blockSizeMltpl;
+    fileCpy.setAlign(Align, blockSizeMltpl);
+}
