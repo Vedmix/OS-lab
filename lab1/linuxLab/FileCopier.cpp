@@ -4,6 +4,7 @@ FileCopier::FileCopier(){}
 
 FileCopier::FileCopier(const size_t _ALIGN, const int blockSizeMultiplier):ALIGN(_ALIGN*1024){
     blockSize = ALIGN*blockSizeMultiplier;
+    overlapCount=1;
 }
 
 FileCopier::~FileCopier(){}
@@ -13,12 +14,21 @@ void FileCopier::setAlign(const size_t _ALIGN, const int blockSizeMultiplier){
     blockSize=ALIGN*blockSizeMultiplier;
 }
 
+void FileCopier::setOverlapCount(const int _overlapCount){
+    overlapCount=_overlapCount;
+}
+
+size_t FileCopier::getAlign(){return ALIGN;}
+size_t FileCopier::getBlockSize(){return blockSize;}
+int FileCopier::getOverlapCount(){return overlapCount;}
+
 FileCopier& FileCopier::operator=(const FileCopier& _fileCpy){
     if(this==&_fileCpy){
         return *this;
     }
     ALIGN=_fileCpy.ALIGN;
     blockSize=_fileCpy.blockSize;
+    overlapCount=_fileCpy.overlapCount;
     return *this;
 }
 
@@ -56,123 +66,138 @@ bool FileCopier::copyFile(const std::string& srcPath, const std::string& destDir
     //O_DIRECT требует чтобы размер блока был кратен ALIGN
     //округляем fileSize вверх до кратного ALIGN для последнего блока
     //это нужно чтобы последний неполный блок тоже читался корректно
-    off_t alignedSize = ((fileSize + ALIGN - 1) / ALIGN) * ALIGN;
+    off_t alignedSize = ((fileSize+ALIGN-1) / ALIGN) * ALIGN;
 
-    //Выделение выровненных буферов
-    //два отдельных буфера: один для чтения, другой для записи
-    void* readBuf  = nullptr;
-    void* writeBuf = nullptr;
-    posix_memalign(&readBuf,  ALIGN, blockSize);
-    posix_memalign(&writeBuf, ALIGN, blockSize);
-
-    //Инициализация контекста AIO (асинхронные операции чтения и записи)
-    //io_context_t - дескриптор очереди асинхронных операций
-    //io_setup - сколько операций одновременно можно выполнять (в данном случае 2 - запись и чтение)
-    io_context_t ctx = {};
-    io_setup(2, &ctx);
-
-    off_t readOffset = 0; //текущая позиция чтения в исходном файле
-    off_t writeOffset = 0; //текущая позиция записи в файле назначения
-    size_t bytesRead = 0; //сколько байт уже прочитано (готово к записи)
-    int inFlight = 0; //счётчик операций находящихся сейчас в очереди ядра
-
-    //iocb - структура описания одной асинхронной операции (I/O Control Block)
-    //readCb - описывает текущую операцию чтения
-    //writeCb - описывает текущую операцию записи
-    struct iocb readCb, writeCb;
-    struct iocb* cbs[2]; //для передачи в io_submit
-
-    //До начала основного цикла вручную запускаем первую операцию чтения, чтобы к первой итерации цикла данные уже были в readBuf
-
-    //toRead — либо полный блок, либо сколько осталось до конца выровненного файла
-    size_t toRead = std::min((off_t)blockSize, alignedSize - readOffset);
-    io_prep_pread(&readCb, srcFd, readBuf, toRead, readOffset); //заполняет структуру iocb для операции чтения count байт из fd начиная со смещения offset в буфер buf
-    cbs[0] = &readCb;
-
-    int rc = io_submit(ctx, 1, cbs); //отправляет n операций в очередь ядра
-    if(rc < 0){
-        io_destroy(ctx);
-        free(readBuf); free(writeBuf);
-        close(srcFd); close(dstFd);
-        return false;
+    //Выделение массивов буферов и iocb по n штук
+    //каждый слот i имеет свой readBuf[i], writeBuf[i], readCb[i], writeCb[i]
+    //это позволяет n операциям чтения и n операциям записи работать параллельно
+    std::vector<void*> readBufs(overlapCount, nullptr);
+    std::vector<void*> writeBufs(overlapCount, nullptr);
+    for(int i=0; i<overlapCount; i++){
+        posix_memalign(&readBufs[i],  ALIGN, blockSize);
+        posix_memalign(&writeBufs[i], ALIGN, blockSize);
     }
-    readOffset += toRead;
-    inFlight++;
 
-    while (inFlight > 0) {
-        //io_event — структура результата завершившейся операции
-        struct io_event events[2];
+    //iocb — структура описания одной асинхронной операции (I/O Control Block)
+    //по n штук для чтения и записи - каждый слот независим
+    std::vector<iocb> readCbs(overlapCount);
+    std::vector<iocb> writeCbs(overlapCount);
+
+    //bytesRead[i] - сколько байт прочитал слот i (нужно при завершении записи)
+    std::vector<size_t> bytesReadArr(overlapCount, 0);
+
+    //Инициализация контекста AIO
+    //io_context_t - дескриптор очереди асинхронных операций
+    //io_setup - максимум 2*n операций одновременно
+    io_context_t ctx = {};
+    io_setup(2*overlapCount, &ctx);
+
+    off_t readOffset  = 0;  //текущая позиция чтения в исходном файле
+    off_t writeOffset = 0;  //текущая позиция записи в файле назначения
+    int inFlight = 0;  //счётчик операций находящихся сейчас в очереди ядра
+
+    struct iocb* cbs[2];
+    int rc;
+
+    //Запускаем первые n операций чтения чтобы заполнить очередь
+    for(int i=0; i<overlapCount && readOffset<alignedSize; i++){
+        size_t toRead = std::min((off_t)blockSize, alignedSize - readOffset);
+
+        //заполняет структуру iocb для операции чтения count байт из fd начиная со смещения offset в буфер buf
+        io_prep_pread(&readCbs[i], srcFd, readBufs[i], toRead, readOffset);
+
+        //сохраняем индекс слота в поле data, чтобы в цикле понять, какой именно слот завершился когда придёт событие
+        readCbs[i].data = (void*)(intptr_t)i;
+
+        cbs[0] = &readCbs[i];
+
+        //отправляет n операций в очередь ядра, после этого вызова операция выполняется асинхронно
+        rc = io_submit(ctx, 1, cbs);
+        if(rc<0){
+            break;
+        }
+        readOffset += toRead;
+        inFlight++;
+    }
+
+    //Основной цикл перекрывающегося копирования
+    while(inFlight>0){
+        struct io_event events[2*overlapCount];
 
         //минимум 1 событие, максимум inFlight событий
-        //timeout = nullptr - ждём бесконечно
         //поток спит до прихода completion event
-        int nEvents = io_getevents(ctx, 1, inFlight, events, nullptr); //возвращает реальное число завершившихся операций
-        if (nEvents < 0) {
+        int nEvents = io_getevents(ctx, 1, inFlight, events, nullptr);
+        if(nEvents<0){
             break;
         }
 
         inFlight -= nEvents; //уменьшаем счётчик на число завершившихся операций
 
-        for (int i = 0; i < nEvents; i++) {
+        for(int i=0; i<nEvents; i++){
             struct iocb* completed = events[i].obj; //какая именно операция завершилась
 
-            //events[i].res — результат операции (число обработанных байт. Если < 0, значит была ошибка)
-            if (events[i].res < 0) {
+            //получаем индекс слота из поля data которое мы сами туда записали
+            int slot = (int)(intptr_t)completed->data;
+
+            //число обработанных байт
+            if(events[i].res < 0){
                 continue;
             }
 
-            if (completed == &readCb) {
+            if(completed == &readCbs[slot]){
+                //Чтение слота завершено
                 //реально прочитанных байт — не больше чем размер файла
-                //ограничиваем чтобы не записать лишние байты padding'а в конец файла
-                bytesRead = std::min((off_t)events[i].res, fileSize - writeOffset);
+                bytesReadArr[slot] = std::min((off_t)events[i].res, fileSize - writeOffset);
 
-                //меняем буферы местами без копирования данных:
-                //то что прочитали (readBuf) идёт на запись (станет writeBuf)
-                //свободный writeBuf получит следующий блок чтения (станет readBuf)
-                std::swap(readBuf, writeBuf);
+                //меняем буферы слота местами без копирования:
+                std::swap(readBufs[slot], writeBufs[slot]);
 
-                //округляем вверх
-                size_t toWrite = ((bytesRead + ALIGN - 1) / ALIGN) * ALIGN;
+                //toWrite тоже должен быть кратен ALIGN для O_DIRECT, округляем вверх
+                size_t toWrite = ((bytesReadArr[slot] + ALIGN - 1) / ALIGN) * ALIGN;
 
                 //заполняет структуру iocb для операции записи count байт из buf в fd начиная со смещения offset
-                io_prep_pwrite(&writeCb, dstFd, writeBuf, toWrite, writeOffset);
+                io_prep_pwrite(&writeCbs[slot], dstFd, writeBufs[slot], toWrite, writeOffset);
+
+                //сохраняем индекс слота чтобы при завершении записи, чтобы знать какой слот освободился
+                writeCbs[slot].data = (void*)(intptr_t)slot;
+                writeOffset += bytesReadArr[slot];
 
                 int toSubmit = 0;
-                cbs[toSubmit++] = &writeCb; //запись - всегда ставим в очередь
+                cbs[toSubmit++] = &writeCbs[slot]; //запись
 
-                //если файл не кончился - сразу читаем следующий блок
-                //не дожидаясь завершения записи
-                if (readOffset < alignedSize) {
-                    toRead = std::min((off_t)blockSize, alignedSize - readOffset);
-                    io_prep_pread(&readCb, srcFd, readBuf, toRead, readOffset);
-                    cbs[toSubmit++] = &readCb; //чтение
+                //если файл не кончился - сразу читаем следующий блок в этот же слот
+                if(readOffset < alignedSize){
+                    size_t toRead = std::min((off_t)blockSize, alignedSize - readOffset);
+                    io_prep_pread(&readCbs[slot], srcFd, readBufs[slot], toRead, readOffset);
+                    readCbs[slot].data = (void*)(intptr_t)slot;
+                    cbs[toSubmit++] = &readCbs[slot];
                     readOffset += toRead;
                 }
 
                 //отправляем обе операции одним вызовом io_submit
                 rc = io_submit(ctx, toSubmit, cbs);
-                if (rc < 0){
+                if(rc < 0)
+                    std::cout << "io_submit failed: " << strerror(-rc) << std::endl;
+                else
                     inFlight += toSubmit;
-                }
 
-            } else if (completed == &writeCb) {
-                //двигаем указатель на реальный размер прочитанных данных,
-                writeOffset += bytesRead;
             }
         }
     }
 
     //Очистка
     //io_destroy освобождает контекст AIO и все связанные ресурсы ядра
+    //важно вызывать после того как все операции завершены
     io_destroy(ctx);
 
-    free(readBuf);
-    free(writeBuf);
+    for(int i = 0; i < overlapCount; i++){
+        free(readBufs[i]);
+        free(writeBufs[i]);
+    }
     close(srcFd);
     close(dstFd);
 
-    //обрезаем файл до реального размера — убираем нулевой padding
-    //который появился из-за выравнивания последнего блока до кратного ALIGN
+    //обрезаем файл до реального размера - убираем нулевой padding
     truncate(destPath.c_str(), fileSize);
 
     return true;

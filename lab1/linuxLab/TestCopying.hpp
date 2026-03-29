@@ -11,6 +11,7 @@ class TestCopying
 {
 private:
     int numTests;
+    size_t fileSize;
     FileCopier fileCpy;
     void createTestFile(const std::string& filename);
     void createFilesForTest();
@@ -19,6 +20,6 @@ public:
     TestCopying();
     ~TestCopying();
 
-    void doTests(const int _numTests, const FileCopier& _fileCpy);
+    void doTests(const int _numTests, const FileCopier& _fileCpy, const size_t _fileSize);
     void deleteAllFilesInDir(const std::string& dir);
 };

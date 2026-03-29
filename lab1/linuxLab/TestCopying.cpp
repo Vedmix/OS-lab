@@ -2,12 +2,14 @@
 
 TestCopying::TestCopying(){
     numTests=0;
+    fileSize=0;
 }
 TestCopying::~TestCopying(){}
 
-void TestCopying::doTests(const int _numTests, const FileCopier& _fileCpy){
+void TestCopying::doTests(const int _numTests, const FileCopier& _fileCpy, const size_t _fileSize){
     numTests=_numTests;
     fileCpy=_fileCpy;
+    fileSize=_fileSize*1024;
     if(!std::filesystem::create_directories("filesOrig")){
         deleteAllFilesInDir("filesOrig");
     }
@@ -38,12 +40,11 @@ void TestCopying::createFilesForTest(){
 }
 
 void TestCopying::createTestFile(const std::string& filename){
-    const size_t SIZE_64KB = 64*1024;
-    std::vector<char> buffer(SIZE_64KB, 0);
+    std::vector<char> buffer(fileSize, 0);
     std::ofstream file("filesOrig/"+filename);
     
     if(file.is_open()){
-        for(size_t i=0; i<SIZE_64KB;i++){
+        for(size_t i=0; i<fileSize;i++){
             file << '0';
         }
         file.close();

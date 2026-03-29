@@ -3,6 +3,7 @@
 Interface::Interface(){
     system("clear");
     runChangingAlign();
+    runChangingOverlapCount();
 }
 Interface::~Interface(){}
 
@@ -16,12 +17,17 @@ void Interface::show(){
             std::cout << "WRONG OPTION!\nTRY AGAIN!\n";
             wrongOption=false;
         }
+        std::cout<<"=====Parameters=====\n";
+        std::cout<<"ALIGN: "<<fileCpy.getAlign()<<std::endl;
+        std::cout<<"Block size: "<<fileCpy.getBlockSize()<<std::endl;
+        std::cout<<"Number of overlapping operations: "<<fileCpy.getOverlapCount()<<std::endl;
         std::cout<<"=====Menu=====\n";
         std::cout<<"0.  Exit\n";
         std::cout<<"1.  Copy file in directory"<<std::endl;
         std::cout<<"2.  Do copy tests" << std::endl;
         std::cout<<"3.  Change buffer align" << std::endl;
-        std::cout<<"4.  Delete all files in directories"<<std::endl;
+        std::cout<<"4.  Change number of overlapping operations" << std::endl;
+        std::cout<<"5.  Delete all files in directories"<<std::endl;
         std::cout<<"Choose option: ";
         std::cin >> userChoice;
         system("clear");
@@ -45,6 +51,10 @@ void Interface::show(){
             runChangingAlign();
             break;
         case 4:
+            std::cout << "==========CHANGE OVERLAPPING OPS==========\n";
+            runChangingOverlapCount();
+            break;
+        case 5:
             std::cout << "==========FILES DELETING==========\n";
             runFileDeleting();
             break;
@@ -62,9 +72,12 @@ void Interface::show(){
 
 void Interface::runCopyTests(){
     int numTests;
+    size_t fileSize;
     std::cout << "Введите количество файлов для копирования: ";
     std::cin >> numTests;
-    cpyTester.doTests(numTests, fileCpy);
+    std::cout << "Введите размер создаваемых файлов (в килобайтах): ";
+    std::cin >> fileSize;
+    cpyTester.doTests(numTests, fileCpy, fileSize);
     std::cout << "Тесты завершены\n";
 }
 
@@ -89,6 +102,13 @@ void Interface::runChangingAlign(){
     std::cout << "Введите множитель для блока копирования (во сколько раз больше выравнивания): ";
     std::cin >> blockSizeMltpl;
     fileCpy.setAlign(Align, blockSizeMltpl);
+}
+
+void Interface::runChangingOverlapCount(){
+    int overlapCount;
+    std::cout << "Введите число перекрывающих операций ввода и вывода: ";
+    std::cin >> overlapCount;
+    fileCpy.setOverlapCount(overlapCount);
 }
 
 void Interface::runFileDeleting(){
