@@ -21,6 +21,7 @@ void Interface::show(){
         std::cout<<"1.  Copy file in directory"<<std::endl;
         std::cout<<"2.  Do copy tests" << std::endl;
         std::cout<<"3.  Change buffer align" << std::endl;
+        std::cout<<"4.  Delete all files in directories"<<std::endl;
         std::cout<<"Choose option: ";
         std::cin >> userChoice;
         system("clear");
@@ -43,6 +44,12 @@ void Interface::show(){
             std::cout << "==========CHANGE ALIGN==========\n";
             runChangingAlign();
             break;
+        case 4:
+            std::cout << "==========FILES DELETING==========\n";
+            cpyTester.deleteAllFilesInDir("filesOrig");
+            cpyTester.deleteAllFilesInDir("filesCopy");
+            std::cout << "Files deleted\n";
+            break;
         default:
             wrongOption=true;
             break;
@@ -60,6 +67,7 @@ void Interface::runCopyTests(){
     std::cout << "Введите количество файлов для копирования: ";
     std::cin >> numTests;
     cpyTester.doTests(numTests, fileCpy);
+    std::cout << "Тесты завершены\n";
 }
 
 void Interface::runFileCopying(){

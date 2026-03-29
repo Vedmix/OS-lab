@@ -8,9 +8,19 @@ TestCopying::~TestCopying(){}
 void TestCopying::doTests(const int _numTests, const FileCopier& _fileCpy){
     numTests=_numTests;
     fileCpy=_fileCpy;
-    deleteAllFilesInDir("filesOrig");
-    deleteAllFilesInDir("filesCopy");
+    if(!std::filesystem::create_directories("filesOrig")){
+        deleteAllFilesInDir("filesOrig");
+    }
+    if(!std::filesystem::create_directories("filesCopy")){
+        deleteAllFilesInDir("filesCopy");
+    }
     createFilesForTest();
+    unsigned int runtime;
+    auto start = std::chrono::high_resolution_clock::now();
+    doCopying();
+    auto end = std::chrono::high_resolution_clock::now();
+    runtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    std::cout << "Время выполнения: " << runtime << " мс\n";
 }
 
 void TestCopying::deleteAllFilesInDir(const std::string& dst){
@@ -33,11 +43,19 @@ void TestCopying::createTestFile(const std::string& filename){
     std::ofstream file("filesOrig/"+filename);
     
     if(file.is_open()){
-        for(size_t i=0; i<SIZE_64KB;i++) {
+        for(size_t i=0; i<SIZE_64KB;i++){
             file << '0';
         }
         file.close();
     } else{
         std::cout << "Ошибка: не удалось создать файл " << filename << std::endl;
+    }
+}
+
+void TestCopying::doCopying(){
+    for(const auto& entry : std::filesystem::directory_iterator("filesOrig")){
+        if(std::filesystem::is_regular_file(entry.status())){
+            fileCpy.copyFile(entry.path(), "filesCopy");
+        }
     }
 }

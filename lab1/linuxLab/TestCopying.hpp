@@ -14,6 +14,7 @@ private:
     FileCopier fileCpy;
     void createTestFile(const std::string& filename);
     void createFilesForTest();
+    void doCopying();
 public:
     TestCopying();
     ~TestCopying();
