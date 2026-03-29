@@ -46,9 +46,7 @@ void Interface::show(){
             break;
         case 4:
             std::cout << "==========FILES DELETING==========\n";
-            cpyTester.deleteAllFilesInDir("filesOrig");
-            cpyTester.deleteAllFilesInDir("filesCopy");
-            std::cout << "Files deleted\n";
+            runFileDeleting();
             break;
         default:
             wrongOption=true;
@@ -91,4 +89,19 @@ void Interface::runChangingAlign(){
     std::cout << "Введите множитель для блока копирования (во сколько раз больше выравнивания): ";
     std::cin >> blockSizeMltpl;
     fileCpy.setAlign(Align, blockSizeMltpl);
+}
+
+void Interface::runFileDeleting(){
+    if(std::filesystem::exists("filesOrig")){
+        if(std::filesystem::is_directory("filesOrig")){
+            cpyTester.deleteAllFilesInDir("filesOrig");
+        }
+    }
+
+    if(std::filesystem::exists("filesCopy")){
+        if(std::filesystem::is_directory("filesCopy")){
+            cpyTester.deleteAllFilesInDir("filesCopy");
+        }
+    }
+    std::cout << "Files deleted\n";
 }

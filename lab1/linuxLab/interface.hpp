@@ -11,6 +11,7 @@ private:
     void runFileCopying(); //КОпирование файла
     void runCopyTests();
     void runChangingAlign();
+    void runFileDeleting();
 public:
     Interface();
     ~Interface();
