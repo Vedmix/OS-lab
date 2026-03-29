@@ -13,6 +13,8 @@ private:
     void runChangingAlign();
     void runChangingOverlapCount();
     void runFileDeleting();
+    void showParameteres();
+    void showMenu();
 public:
     Interface();
     ~Interface();

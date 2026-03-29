@@ -17,17 +17,8 @@ void Interface::show(){
             std::cout << "WRONG OPTION!\nTRY AGAIN!\n";
             wrongOption=false;
         }
-        std::cout<<"=====Parameters=====\n";
-        std::cout<<"ALIGN: "<<fileCpy.getAlign()<<std::endl;
-        std::cout<<"Block size: "<<fileCpy.getBlockSize()<<std::endl;
-        std::cout<<"Number of overlapping operations: "<<fileCpy.getOverlapCount()<<std::endl;
-        std::cout<<"=====Menu=====\n";
-        std::cout<<"0.  Exit\n";
-        std::cout<<"1.  Copy file in directory"<<std::endl;
-        std::cout<<"2.  Do copy tests" << std::endl;
-        std::cout<<"3.  Change buffer align" << std::endl;
-        std::cout<<"4.  Change number of overlapping operations" << std::endl;
-        std::cout<<"5.  Delete all files in directories"<<std::endl;
+        showParameteres();
+        showMenu();
         std::cout<<"Choose option: ";
         std::cin >> userChoice;
         system("clear");
@@ -39,18 +30,22 @@ void Interface::show(){
             std::cout << "Exiting...\n";
             break;
         case 1:
+            showParameteres();
             std::cout << "==========COPY FILE==========\n";
             runFileCopying();
             break;
         case 2:
+            showParameteres();
             std::cout << "==========COPY TESTS==========\n";
             runCopyTests();
             break;
         case 3:
+            showParameteres();
             std::cout << "==========CHANGE ALIGN==========\n";
             runChangingAlign();
             break;
         case 4:
+            showParameteres();
             std::cout << "==========CHANGE OVERLAPPING OPS==========\n";
             runChangingOverlapCount();
             break;
@@ -124,4 +119,21 @@ void Interface::runFileDeleting(){
         }
     }
     std::cout << "Files deleted\n";
+}
+
+void Interface::showParameteres(){
+    std::cout<<"=====Parameters=====\n";
+    std::cout<<"ALIGN: "<<fileCpy.getAlign()<<std::endl;
+    std::cout<<"Block size: "<<fileCpy.getBlockSize()<<std::endl;
+    std::cout<<"Number of overlapping operations: "<<fileCpy.getOverlapCount()<<std::endl;
+}
+
+void Interface::showMenu(){
+    std::cout<<"=====Menu=====\n";
+    std::cout<<"0.  Exit\n";
+    std::cout<<"1.  Copy file in directory"<<std::endl;
+    std::cout<<"2.  Do copy tests" << std::endl;
+    std::cout<<"3.  Change buffer align" << std::endl;
+    std::cout<<"4.  Change number of overlapping operations" << std::endl;
+    std::cout<<"5.  Delete all files in directories"<<std::endl;
 }
