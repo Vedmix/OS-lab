@@ -98,13 +98,13 @@ void showDriverInformation(const vector<string>& listofdrivers){
     
     BOOL info = GetVolumeInformationA(
         listofdrivers[index].c_str(),   //путь к диску
-        VolumeNameBuffer,               //буфер для имени тома
+        VolumeNameBuffer,               
         MAX_SIZE,                       //размер буфера
-        &serial,                        //указатель на серийный номер
-        &componentlenght,               //указатель на максимальную длину имени
-        &flags,                         //указатель на флаги
-        FileSystemNameBuffer,           //буфер для файловой системы (NTFS, FAT32)
-        MAX_SIZE                        //размер буфера
+        &serial,                        
+        &componentlenght,               
+        &flags,                         
+        FileSystemNameBuffer,           
+        MAX_SIZE                        
     );
     
     if(info){
@@ -112,44 +112,70 @@ void showDriverInformation(const vector<string>& listofdrivers){
         cout<<"Serial number: "<<serial<<endl;
         cout<<"File system: "<<FileSystemNameBuffer<<endl;
         cout<<"Max length of file name component: "<<componentlenght<<endl;
-        cout<<"File system flags: "<<flags<<endl;
+        cout<<"File system info: "<<endl;
 
-        if(flags & FILE_CASE_SENSITIVE_SEARCH)      //Файловая система чувствительна к регистру
-            cout<<"  - Supports case-sensitive file names"<<endl;
-        if(flags & FILE_CASE_PRESERVED_NAMES)       //Сохраняет регистр имен файлов
-            cout<<"  - Preserves case of file names"<<endl;
-        if(flags & FILE_UNICODE_ON_DISK)            //Поддерживает Unicode в именах
-            cout<<"  - Supports Unicode in file names"<<endl;
-        if(flags & FILE_PERSISTENT_ACLS)            //Поддерживает ACL (списки доступа)
-            cout<<"  - Preserves and enforces ACLs"<<endl;
-        if(flags & FILE_FILE_COMPRESSION)           //Поддерживает сжатие файлов
-            cout<<"  - Supports file-based compression"<<endl;
-        if(flags & FILE_VOLUME_QUOTAS)              //Поддерживает квоты диска
-            cout<<"  - Supports disk quotas"<<endl;
-        if(flags & FILE_SUPPORTS_SPARSE_FILES)      //Поддерживает разреженные файлы
-            cout<<"  - Supports sparse files"<<endl;
-        if(flags & FILE_SUPPORTS_REPARSE_POINTS)    //Поддерживает точки повторной обработки (символические ссылки)
-            cout<<"  - Supports reparse points"<<endl;
-        if(flags & FILE_SUPPORTS_REMOTE_STORAGE)    //Поддерживает удаленное хранение
-            cout<<"  - Supports remote storage"<<endl;
-        if(flags & FILE_VOLUME_IS_COMPRESSED)       //Весь том сжат
-            cout<<"  - Volume is compressed"<<endl;
-        if(flags & FILE_SUPPORTS_OBJECT_IDS)        //Поддерживает идентификаторы объектов
-            cout<<"  - Supports object identifiers"<<endl;
-        if(flags & FILE_SUPPORTS_ENCRYPTION)        //Поддерживает шифрование (EFS)
-            cout<<"  - Supports Encrypted File System (EFS)"<<endl;
-        if(flags & FILE_NAMED_STREAMS)              //Поддерживает именованные потоки (NTFS)
-            cout<<"  - Supports named streams"<<endl;
-        if(flags & FILE_READ_ONLY_VOLUME)           //Том только для чтения
-            cout<<"  - Volume is read-only"<<endl;
-        if(flags & FILE_SUPPORTS_TRANSACTIONS)      //Поддерживает транзакции (TxF)
-            cout<<"  - Supports transactions"<<endl;
-        if(flags & FILE_SUPPORTS_HARD_LINKS)        //Поддерживает жесткие ссылки
-            cout<<"  - Supports hard links"<<endl;
-        if(flags & FILE_SUPPORTS_EXTENDED_ATTRIBUTES) //Поддерживает расширенные атрибуты
-            cout<<"  - Supports extended attributes"<<endl;
+        if(flags & FILE_CASE_SENSITIVE_SEARCH) cout<<"  (+) Case-sensitive search"<<endl; //Файловая система чувствительна к регистру
+        if(flags & FILE_CASE_PRESERVED_NAMES) cout<<"  (+) Preserves case of filenames"<<endl; //Сохраняет регистр имен файлов
+        if(flags & FILE_UNICODE_ON_DISK) cout<<"  (+) Unicode filenames"<<endl; //Поддерживает Unicode в именах
+        if(flags & FILE_FILE_COMPRESSION) cout<<"  (+) File-based compression"<<endl; //Поддерживает сжатие файлов
+        if(flags & FILE_VOLUME_QUOTAS) cout<<"  (+) Disk quotas"<<endl; //Поддерживает квоты диска
+        if(flags & FILE_SUPPORTS_SPARSE_FILES) cout<<"  (+) Sparse files"<<endl; //Поддерживает разреженные файлы
+        if(flags & FILE_VOLUME_IS_COMPRESSED) cout<<"  (+) Volume is compressed"<<endl; //Весь том сжат
+        if(flags & FILE_SUPPORTS_ENCRYPTION) cout<<"  (+) Encrypted File System (EFS)"<<endl; //Поддерживает шифрование (EFS)
+        if(flags & FILE_NAMED_STREAMS) cout<<"  (+) NTFS"<<endl; //Поддерживает именованные потоки (NTFS)
+        if(flags & FILE_READ_ONLY_VOLUME) cout<<"  (+) Volume is read-only"<<endl; //Том только для чтения
+        if(flags & FILE_SUPPORTS_TRANSACTIONS) cout<<"  (+) Transactions"<<endl; //Поддерживает транзакции (TxF)
+        if(flags & FILE_SUPPORTS_HARD_LINKS) cout<<"  (+) Hard links"<<endl; //Поддерживает жесткие ссылки
     }
     else{
         cout<<"Error getting volume information! Error code: "<<GetLastError()<<endl;
+    }
+}
+
+//Получает информацию о свободном месте на диске
+void showDriverFreeSpace(const vector<string>& listofdrivers){
+    if(listofdrivers.empty()){
+        cout<<"Please check your drives first (Option 1-2 in menu)"<<endl; 
+        return;
+    }
+    
+    DWORD SectorsPerCluster; // количество секторов в кластере
+    DWORD BytesPerSector; // количество байт в секторе
+    DWORD NumberOfFreeClusters; // количество свободных кластеров
+    DWORD TotalNumberOfClusters; // общее количество кластеров
+    
+    int id;
+    int number;
+    cout<<"Please select a disk number: ";
+    cin >> number;
+
+    id = number - 1;
+    
+    if(id < 0 || id >= (int)listofdrivers.size()){
+        cout<<"Invalid disk number!"<<endl;
+        return;
+    }
+    
+    BOOL space = GetDiskFreeSpaceA(
+        listofdrivers[id].c_str(),
+        &SectorsPerCluster,
+        &BytesPerSector,
+        &NumberOfFreeClusters,
+        &TotalNumberOfClusters
+    );
+    
+    if(space){
+        __int64 totalBytes = (__int64)TotalNumberOfClusters * SectorsPerCluster * BytesPerSector;
+        __int64 freeBytes = (__int64)NumberOfFreeClusters * SectorsPerCluster * BytesPerSector;
+        
+        cout<<"(1) Sectors per cluster: "<<SectorsPerCluster<<endl;
+        cout<<"(2) Bytes per sector: "<<BytesPerSector<<endl;
+        cout<<"(3) Number of free clusters: "<<NumberOfFreeClusters<<endl;
+        cout<<"(4) Total clusters: "<<TotalNumberOfClusters<<endl;
+        cout<<"(5) Total disk space: "<<totalBytes / (1024 * 1024)<<" MB"<<endl;
+        cout<<"(6) Free disk space: "<<freeBytes / (1024 * 1024)<<" MB"<<endl;
+    }
+    else{
+        cout<<"Error getting disk free space! Error code: "<<GetLastError()<<endl;
     }
 }

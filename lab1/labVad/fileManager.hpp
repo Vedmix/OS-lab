@@ -7,15 +7,15 @@
 
 using namespace std;
 
-bool createDirectory(const string& dirPath, const string& dirName);
-bool removeDirectory(const string& dirPath);
-bool createFile(const string& dirPath, const string& fileName, const string& content = "");
-bool copyFile(const string& sourcePath, const string& destDir);
-bool moveFile(const string& sourcePath, const string& destPath);
-bool moveFileEx(const string& sourcePath, const string& destPath, DWORD flags = 0);
-void showDiskFreeSpace(const vector<string>& listofdrivers);
-void ShowFileAttributes(const string& filePath);
-void SetFileAttributesMenu(const string& filePath);
-void GetFileInformation(const string& filePath);
-void SetFileTimes(const string& filePath);
-void GetFileTimes(const string& filePath);
+void removeDirectory(const string& dirPath);
+
+void createFile(const string& dirPath, const string& fileName, const string& content = "");
+void copyFile(const string& sourcePath, const string& destDir);
+void moveFile(const string& sourcePath, const string& destPath);
+void moveFileEx(const string& srcPath, const string& dstPath, DWORD flags);
+
+void showFileAttributes(const string& filePath);
+void setFileAttribute(const string& filePath);
+void showFileInfo(const string& filePath);
+void setFileTime(const string& filePath);
+void showFileTimeInfo(const string& filePath);

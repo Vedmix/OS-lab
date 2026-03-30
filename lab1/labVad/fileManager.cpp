@@ -1,38 +1,6 @@
 #include "fileManager.hpp"
 
-bool createDirectory(const string& dirPath, const string& dirName){
-    string fullPath = trimmed(dirPath) + "\\" + trimmed(dirName);
-    
-    bool isDir;
-   if(!checkPath(trimmed(dirPath), isDir) || !isDir){
-        cout<<"Error: Parent directory does not exist: "<<dirPath<<endl;
-        return false;
-    }
-    
-   if(checkPath(fullPath, isDir)){
-       if(isDir){
-            cout<<"Warning: Directory already exists!"<<endl;
-            return false;
-        }
-    }
-    
-   if(CreateDirectory(fullPath.c_str(), NULL)){
-        cout<<"Directory successfully created: "<<fullPath<<endl;
-        return true;
-    }else{
-        DWORD error = GetLastError();
-       if(error == ERROR_ALREADY_EXISTS){
-            cout<<"Error: Directory already exists!"<<endl;
-        }else if(error == ERROR_PATH_NOT_FOUND){
-            cout<<"Error: Parent directory does not exist!"<<endl;
-        }else{
-            cout<<"Error: failed to create directory! Error code: "<<error<<endl;
-        }
-        return false;
-    }
-}
-
-bool removeDirectory(const string& dirPath){
+void removeDirectory(const string& dirPath){
     string path =trimmed(dirPath);
     
     cout<<"Removing directory: "<<path<<endl;
@@ -40,59 +8,51 @@ bool removeDirectory(const string& dirPath){
     bool isDir;
     if(!checkPath(path, isDir)){
             cout<<"Error: Directory does not exist!"<<endl;
-            return false;
+            return;
         }
     
     if(!isDir){
             cout<<"Error: Path is not a directory!"<<endl;
-            return false;
+            return;
         }
         
     if(checkContain(path)){
         cout<<"Error: Directory is not empty! Please delete all files first."<<endl;
-        return false;
+        return;
         }
         
     if(RemoveDirectory(path.c_str())){
             cout<<"Directory successfully removed: "<<path<<endl;
-            return true;
-        }else{
-            DWORD error = GetLastError();
-        if(error == ERROR_DIR_NOT_EMPTY){
-                cout<<"Error: Directory is not empty!"<<endl;
-            }else if(error == ERROR_ACCESS_DENIED){
+            return;
+    }else{
+        DWORD error = GetLastError();
+        if(error == ERROR_ACCESS_DENIED){
                 cout<<"Error: Access denied!"<<endl;
-            }else{
-                cout<<"Error: failed to remove directory! Error code: "<<error<<endl;
-            }
-            return false;
+        }else{
+            cout<<"Error: failed to remove directory! Error code: "<<error<<endl;
         }
+        return;
+    }
 }
 
-bool createFile(const string& dirPath, const string& fileName, const string& content){
+void createFile(const string& dirPath, const string& fileName, const string& content){
     string fullPath = trimmed(dirPath)+ "\\" + fileName;
     
     cout<<"Creating file: "<<fullPath<<endl;
     
-    bool isDir;
-    if(!checkPath(trimmed(dirPath), isDir)|| !isDir){
-        cout<<"Error: directory does not exist: "<<trimmed(dirPath)<<endl;
-        return false;
-    }
-    
     HANDLE hFile = CreateFile(
-        fullPath.c_str(),
-        GENERIC_WRITE,
-        0,
-        NULL,
-        CREATE_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL
+        fullPath.c_str(),        //путь к файлу
+        GENERIC_WRITE,           //доступ: запись
+        0,                       //режим совместного доступа: исключительный
+        NULL,                    //атрибуты безопасности: стандартные
+        CREATE_ALWAYS,           //создаем новый/перезаписываем существующий
+        FILE_ATTRIBUTE_NORMAL,   //обычный файл (без атрибутов)
+        NULL                     //шаблон файла: не используется
     );
     
     if(hFile == INVALID_HANDLE_VALUE){
         cout<<"Error: failed to create file!"<<endl;
-        return false;
+        return;
     }
     
     if(!content.empty()){
@@ -100,26 +60,17 @@ bool createFile(const string& dirPath, const string& fileName, const string& con
         if(!WriteFile(hFile, content.c_str(), content.length(), &bytesWritten, NULL)){
             cout<<"Error: failed to write to file!"<<endl;
             CloseHandle(hFile);
-            return false;
+            return;
         }
         cout<<"Written "<<bytesWritten<<" bytes to file"<<endl;
     }
-    
+    //Закрываем дескриптор файла (освобождаем ресурс)
     CloseHandle(hFile);
     cout<<"File successfully created: "<<fullPath<<endl;
-    return true;
+    return;
 }
 
-bool copyFile(const string& sourcePath, const string& destDir){
-    bool isDir;
-    if(!checkPath(trimmed(sourcePath), isDir)){
-        cout<<"Error: directory "<<trimmed(sourcePath)<<" is incorrect"<< endl;
-        return false;
-    }else if(!checkPath(trimmed(destDir), isDir)){
-        cout<<"Error: directory "<<trimmed(destDir)<<" is incorrect"<< endl;
-        return false;
-    }
-
+void copyFile(const string& sourcePath, const string& destDir){
     string copyFileName = getCopyFileName(trimmed(sourcePath));
     string destPath = trimmed(destDir)+ "\\" + copyFileName;
     
@@ -133,181 +84,123 @@ bool copyFile(const string& sourcePath, const string& destDir){
         cin>>choice;
         if(tolower(choice)!= 'y'){
             cout<<"Copy cancelled."<<endl;
-            return false;
+            return;
         }
     }
     
     if(CopyFile(trimmed(sourcePath).c_str(), destPath.c_str(), FALSE)){
         cout<<"File successfully copied!"<<endl;
-        return true;
+        return;
     }else{
         cout<<"Error: failed to copy file!"<<endl;
-        return false;
+        return;
     }
 }
 
-bool moveFile(const string& sourcePath, const string& destPath){
+void moveFile(const string& sourcePath, const string& destPath){
     string src = trimmed(sourcePath);
     string dst = trimmed(destPath);
-    
-    bool isDir;
-    if(!checkPath(src, isDir)){
-            cout<<"Error: source file does not exist!"<<endl;
-            return false;
-        }
-        
-    if(isDir){
-            cout<<"Error: source is a directory!"<<endl;
-            return false;
-        }
-        
-        string fileName = getFileName(src);
-        
-    if(checkPath(dst, isDir) && isDir){
-            dst = dst + "\\" + fileName;
-        }
-        
-        bool destExists;
-        bool destIsDir;
-        destExists = checkPath(dst, destIsDir);
-        
-    if(destExists && !destIsDir){
-            cout<<"Destination file already exists!"<<endl;
-            cout<<"Overwrite? (y/n): ";
-            char choice;
-            cin>>choice;
-        if(tolower(choice) != 'y'){
-                cout<<"Move cancelled."<<endl;
-                return false;
-            }
-        if(!DeleteFile(dst.c_str())){
-                cout<<"Error: failed to delete existing file!"<<endl;
-                return false;
-            }
-        }else if(destExists && destIsDir){
-            cout<<"Error: destination is a directory! Please specify a file name."<<endl;
-            return false;
-        }
-        
-    if(MoveFile(src.c_str(), dst.c_str())){
-            cout<<"File successfully moved!"<<endl;
-            cout<<"From: "<<src<<endl;
-            cout<<"To: "<<dst<<endl;
-            return true;
-        }else{
-            DWORD error = GetLastError();
-        if(error == ERROR_ACCESS_DENIED){
-                cout<<"Error: Access denied!"<<endl;
-            }else if(error == ERROR_NOT_SAME_DEVICE){
-                cout<<"Error: Cannot move between different drives!"<<endl;
-            }else{
-                cout<<"Error: failed to move file! Error code: "<<error<<endl;
-            }
-            return false;
-        }
-}
-bool moveFileEx(const string& sourcePath, const string& destPath, DWORD flags){
-    string src = trimmed(sourcePath);
-    string dst = trimmed(destPath);
-    
-    bool isDir;
-    if(!checkPath(src, isDir)){
-        cout<<"Error: source file does not exist!"<<endl;
-        return false;
-    }
-    
-    if(isDir){
-        cout<<"Error: source is a directory!"<<endl;
-        return false;
-    }
-    
     string fileName = getFileName(src);
-    
-    bool destExists = checkPath(dst, isDir);
-    
+
+    bool isDir;
+    bool destExists;
+    bool destIsDir;
+
     if(checkPath(dst, isDir) && isDir){
         dst = dst + "\\" + fileName;
-        cout<<"Destination is a directory. File will be moved as: "<<dst<<endl;
-        destExists = checkPath(dst, isDir);
     }
 
-    
-    
-    if(destExists && !isDir){
-        if(!(flags & MOVEFILE_REPLACE_EXISTING)){
-            cout<<"Warning: Destination file already exists!"<<endl;
-            cout<<"Overwrite? (y/n): ";
-            char choice;
-            cin>>choice;
-            if(tolower(choice) != 'y'){
-                cout<<"Move cancelled."<<endl;
-                return false;
-            }
-            flags |= MOVEFILE_REPLACE_EXISTING;
+    destExists = checkPath(dst, destIsDir);
+
+    size_t pos = dst.find_last_of("\\/");
+    string destDir = (pos == string::npos) ? "" : dst.substr(0, pos);
+
+    bool dirExists = true;
+    if(!destDir.empty()){
+        if(!checkPath(destDir, dirExists) || !dirExists){
+            cout << "Error: destination directory does not exist!" << endl;
+            return;
         }
     }
-    
-    if(MoveFileEx(src.c_str(), dst.c_str(), flags)){
+
+    if(destExists && !destIsDir){
+        cout<<"Destination file already exists!"<<endl;
+        cout<<"Overwrite? (y/n): ";
+        char choice;
+        cin>>choice;
+
+        if(tolower(choice) != 'y'){
+            cout<<"Move cancelled."<<endl;
+            return;
+        }
+
+        if(!DeleteFile(dst.c_str())){
+            cout<<"Error: failed to delete existing file!"<<endl;
+            return;
+        }
+    }
+    else if(destExists && destIsDir){
+        cout<<"Error: destination is a directory! Please specify a file name."<<endl;
+        return;
+    }
+
+    if(MoveFile(src.c_str(), dst.c_str())){
         cout<<"File successfully moved!"<<endl;
         cout<<"From: "<<src<<endl;
         cout<<"To: "<<dst<<endl;
-        return true;
+        return;
     }else{
         DWORD error = GetLastError();
+
         if(error == ERROR_ACCESS_DENIED){
-            cout<<"Error: Access denied! Try running as administrator."<<endl;
-        }else if(error == ERROR_NOT_SAME_DEVICE){
+            cout<<"Error: Access denied!"<<endl;
+        }
+        else if(error == ERROR_NOT_SAME_DEVICE){
             cout<<"Error: Cannot move between different drives!"<<endl;
-            cout<<"Use COPY_ALLOWED flag to enable cross-drive move."<<endl;
-        }else{
+        }
+        else{
             cout<<"Error: failed to move file! Error code: "<<error<<endl;
         }
-        return false;
+
+        return;
     }
 }
 
-void showDiskFreeSpace(const vector<string>& listofdrivers){
-    if(listofdrivers.empty()){
-        cout<<"Please check your drives first (Option 1-2 in menu)"<<endl; 
+void moveFileEx(const string& srcPath, const string& dstPath, DWORD flags){
+    BOOL result = MoveFileExA(srcPath.c_str(), dstPath.c_str(), flags);
+
+    if (result)
+    {
+        cout << "Move successful\n";
+        cout << "From: " << srcPath << endl;
+        cout << "To:   " << dstPath << endl;
         return;
     }
-    
-    DWORD SectorsPerCluster, BytesPerSector, NumberOfFreeClusters, TotalNumberOfClusters;
-    
-    int id;
-    cout<<"Please select a disk number: ";
-    cin >> id;
-    
-    if(id < 0 || id >= (int)listofdrivers.size()){
-        cout<<"Invalid disk number!"<<endl;
+    else
+    {
+        DWORD error = GetLastError();
+        cout << "Move failed. Error code: " << error << endl;
+        switch (error)
+        {
+            case ERROR_ACCESS_DENIED:
+                cout << "Access denied. Check if:\n";
+                cout << "  - Destination file is not read-only\n";
+                cout << "  - Destination file is not open in another program\n";
+                cout << "  - You have write permissions\n";
+                break;
+            case ERROR_PATH_NOT_FOUND:cout << "Path not found. Check if destination directory exists\n";break;
+            case ERROR_FILE_NOT_FOUND:cout << "Source file not found\n";break;
+            case ERROR_ALREADY_EXISTS:cout << "Destination file already exists. Use REPLACE_EXISTING flag\n";break;
+            case ERROR_NOT_SAME_DEVICE:cout << "Different drives. Use MOVEFILE_COPY_ALLOWED flag\n";break;
+            case ERROR_INVALID_PARAMETER:cout << "Invalid parameter. Check paths and flags\n";break;
+            default:cout << "Unhandled error\n";break;
+        }
+
         return;
-    }
-    
-    BOOL space = GetDiskFreeSpaceA(
-        listofdrivers[id].c_str(),
-        &SectorsPerCluster,
-        &BytesPerSector,
-        &NumberOfFreeClusters,
-        &TotalNumberOfClusters
-    );
-    
-    if(space){
-        __int64 totalBytes = (__int64)TotalNumberOfClusters * SectorsPerCluster * BytesPerSector;
-        __int64 freeBytes = (__int64)NumberOfFreeClusters * SectorsPerCluster * BytesPerSector;
-        
-        cout<<"Sectors per cluster: "<<SectorsPerCluster<<endl;
-        cout<<"Bytes per sector: "<<BytesPerSector<<endl;
-        cout<<"Number of free clusters: "<<NumberOfFreeClusters<<endl;
-        cout<<"Total clusters: "<<TotalNumberOfClusters<<endl;
-        cout<<"\nTotal disk space: "<<totalBytes / (1024 * 1024)<<" MB ("<<totalBytes<<" bytes)"<<endl;
-        cout<<"Free disk space: "<<freeBytes / (1024 * 1024)<<" MB ("<<freeBytes<<" bytes)"<<endl;
-    }
-    else{
-        cout<<"Error getting disk free space! Error code: "<<GetLastError()<<endl;
     }
 }
 
-void ShowFileAttributes(const string& filePath){
+void showFileAttributes(const string& filePath){
     DWORD attribute = GetFileAttributesA(filePath.c_str());
     if(attribute == INVALID_FILE_ATTRIBUTES){
         cout<<"Error: Could not get file attributes! Error code: "<<GetLastError()<<endl;
@@ -315,131 +208,95 @@ void ShowFileAttributes(const string& filePath){
     }
     
     cout<<"Attributes of file \""<<filePath<<"\":"<<endl;
-    cout<<"----------------------------------------"<<endl;
     
     bool hasAttributes = false;
     
     if(attribute & FILE_ATTRIBUTE_DIRECTORY){
-        cout<<"  - Directory"<<endl;
+        cout<<" Directory"<<endl;
         hasAttributes = true;
     }
     if(attribute & FILE_ATTRIBUTE_READONLY){
-        cout<<"  - Read-only"<<endl;
+        cout<<" Read-only"<<endl;
         hasAttributes = true;
     }
     if(attribute & FILE_ATTRIBUTE_HIDDEN){
-        cout<<"  - Hidden"<<endl;
+        cout<<" Hidden"<<endl;
         hasAttributes = true;
     }
     if(attribute & FILE_ATTRIBUTE_SYSTEM){
-        cout<<"  - System"<<endl;
+        cout<<" System"<<endl;
         hasAttributes = true;
     }
     if(attribute & FILE_ATTRIBUTE_ARCHIVE){
-        cout<<"  - Archive"<<endl;
+        cout<<" Archive"<<endl;
         hasAttributes = true;
     }
     if(attribute & FILE_ATTRIBUTE_TEMPORARY){
-        cout<<"  - Temporary"<<endl;
+        cout<<" Temporary"<<endl;
         hasAttributes = true;
     }
     if(attribute & FILE_ATTRIBUTE_NORMAL){
-        cout<<"  - Normal file"<<endl;
+        cout<<" Normal file"<<endl;
         hasAttributes = true;
     }
     if(attribute & FILE_ATTRIBUTE_COMPRESSED){
-        cout<<"  - Compressed"<<endl;
-        hasAttributes = true;
-    }
-    if(attribute & FILE_ATTRIBUTE_OFFLINE){
-        cout<<"  - Offline"<<endl;
+        cout<<" Compressed"<<endl;
         hasAttributes = true;
     }
     if(attribute & FILE_ATTRIBUTE_NOT_CONTENT_INDEXED){
-        cout<<"  - Not content indexed"<<endl;
+        cout<<" Not content indexed"<<endl;
         hasAttributes = true;
     }
     if(attribute & FILE_ATTRIBUTE_ENCRYPTED){
-        cout<<"  - Encrypted"<<endl;
+        cout<<" Encrypted"<<endl;
         hasAttributes = true;
     }
     
     if(!hasAttributes){
         cout<<"  - No special attributes"<<endl;
     }
-    
-    cout<<"----------------------------------------"<<endl;
     cout<<"Attribute value (hex): 0x"<<hex<<attribute<<dec<<endl;
 }
 
-void SetFileAttributesMenu(const string& filePath){
+void setFileAttribute(const string& filePath){
     int indexAttribute;
     bool bAttribute;
     DWORD newAttribute;
     
-    cout<<"\n=== Set File Attributes ==="<<endl;
     cout<<"Current attributes:"<<endl;
-    ShowFileAttributes(filePath);
+    showFileAttributes(filePath);
     
-    cout<<"\n=== Choose attribute to set ==="<<endl;
-    cout<<"1.  ARCHIVE"<<endl;
-    cout<<"2.  HIDDEN"<<endl;
-    cout<<"3.  NORMAL (clears all other attributes)"<<endl;
-    cout<<"4.  NOT CONTENT INDEXED"<<endl;
-    cout<<"5.  OFFLINE"<<endl;
-    cout<<"6.  READONLY"<<endl;
-    cout<<"7.  SYSTEM"<<endl;
-    cout<<"8.  TEMPORARY"<<endl;
-    cout<<"9.  COMPRESSED"<<endl;
-    cout<<"10. ENCRYPTED"<<endl;
-    cout<<"0.  Cancel"<<endl;
+    cout<<"\nChoose attribute to set:"<<endl;
+    cout<<"(1)  ARCHIVE"<<endl;
+    cout<<"(2)  HIDDEN"<<endl;
+    cout<<"(3)  NORMAL (clears all other attributes)"<<endl;
+    cout<<"(4)  NOT CONTENT INDEXED"<<endl;
+    cout<<"(5)  ENCRYPTED"<<endl;
+    cout<<"(6)  READONLY"<<endl;
+    cout<<"(7)  SYSTEM"<<endl;
+    cout<<"(8)  TEMPORARY"<<endl;
+    cout<<"(9)  COMPRESSED"<<endl;
     cout<<"Choose attribute: ";
     cin >> indexAttribute;
     
     switch(indexAttribute){
-        case 1:
-            newAttribute = FILE_ATTRIBUTE_ARCHIVE;
-            break;
-        case 2:
-            newAttribute = FILE_ATTRIBUTE_HIDDEN;
-            break;
-        case 3:
-            newAttribute = FILE_ATTRIBUTE_NORMAL;
-            break;
-        case 4:
-            newAttribute = FILE_ATTRIBUTE_NOT_CONTENT_INDEXED;
-            break;
-        case 5:
-            newAttribute = FILE_ATTRIBUTE_OFFLINE;
-            break;
-        case 6:
-            newAttribute = FILE_ATTRIBUTE_READONLY;
-            break;
-        case 7:
-            newAttribute = FILE_ATTRIBUTE_SYSTEM;
-            break;
-        case 8:
-            newAttribute = FILE_ATTRIBUTE_TEMPORARY;
-            break;
-        case 9:
-            newAttribute = FILE_ATTRIBUTE_COMPRESSED;
-            break;
-        case 10:
-            newAttribute = FILE_ATTRIBUTE_ENCRYPTED;
-            break;
-        case 0:
-            cout<<"Operation cancelled."<<endl;
-            return;
-        default:
-            cout<<"Invalid choice!"<<endl;
-            return;
+        case 1: newAttribute = FILE_ATTRIBUTE_ARCHIVE;break;
+        case 2: newAttribute = FILE_ATTRIBUTE_HIDDEN;break;
+        case 3: newAttribute = FILE_ATTRIBUTE_NORMAL;break;
+        case 4: newAttribute = FILE_ATTRIBUTE_NOT_CONTENT_INDEXED;break;
+        case 5: newAttribute = FILE_ATTRIBUTE_ENCRYPTED;break;
+        case 6: newAttribute = FILE_ATTRIBUTE_READONLY;break;
+        case 7: newAttribute = FILE_ATTRIBUTE_SYSTEM;break;
+        case 8: newAttribute = FILE_ATTRIBUTE_TEMPORARY;break;
+        case 9: newAttribute = FILE_ATTRIBUTE_COMPRESSED;break;
+        default: cout<<"Invalid choice!"<<endl;return;
     }
     
     bAttribute = SetFileAttributesA(filePath.c_str(), newAttribute);
     if(bAttribute){
         cout<<"Attributes successfully changed!"<<endl;
         cout<<"New attributes:"<<endl;
-        ShowFileAttributes(filePath);
+        showFileAttributes(filePath);
     }
     else{
         cout<<"Error setting attributes! Error code: "<<GetLastError()<<endl;
@@ -449,8 +306,10 @@ void SetFileAttributesMenu(const string& filePath){
     }
 }
 
-void GetFileInformation(const string& filePath){
-    ULONGLONG fileSize, fileId;
+void showFileInfo(const string& filePath){
+    ULONGLONG fileSize;
+    ULONGLONG fileId;
+     
     BY_HANDLE_FILE_INFORMATION lpFileInformation;
     
     HANDLE hInfFile = CreateFile(
@@ -469,11 +328,10 @@ void GetFileInformation(const string& filePath){
     }
     
     if(GetFileInformationByHandle(hInfFile, &lpFileInformation)){
-        cout<<"\n=== File Information ==="<<endl;
+        cout<<"\nFile Information:"<<endl;
         cout<<"File: "<<filePath<<endl;
-        cout<<"----------------------------------------"<<endl;
         
-        // Attributes
+        //Attributes
         cout<<"Attributes: ";
         if(lpFileInformation.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) cout<<"Directory ";
         if(lpFileInformation.dwFileAttributes & FILE_ATTRIBUTE_READONLY) cout<<"Read-only ";
@@ -483,32 +341,31 @@ void GetFileInformation(const string& filePath){
         if(lpFileInformation.dwFileAttributes & FILE_ATTRIBUTE_TEMPORARY) cout<<"Temporary ";
         cout<<endl;
         
-        // Time information
+        //Time information
         printFileTimeForHandle(lpFileInformation.ftCreationTime, "Created");
         printFileTimeForHandle(lpFileInformation.ftLastAccessTime, "Last access");
         printFileTimeForHandle(lpFileInformation.ftLastWriteTime, "Last modified");
         
-        // Size information
+        //Size information
         fileSize = (static_cast<ULONGLONG>(lpFileInformation.nFileSizeHigh)<<32) | lpFileInformation.nFileSizeLow;
         cout<<"\nSize: "<<fileSize<<" bytes";
         if(fileSize > 1024) cout<<" ("<<fixed<<setprecision(2)<<(double)fileSize / 1024<<" KB)";
         if(fileSize > 1024 * 1024) cout<<" ("<<fixed<<setprecision(2)<<(double)fileSize / (1024 * 1024)<<" MB)";
         cout<<endl;
         
-        // Volume information
+        //Volume information
         cout<<"Volume serial number: 0x"<<hex<<lpFileInformation.dwVolumeSerialNumber<<dec<<endl;
         
-        // Link information
+        //Link information
         cout<<"Number of hard links: "<<lpFileInformation.nNumberOfLinks<<endl;
         if(lpFileInformation.nNumberOfLinks > 1){
             cout<<"  (This file has multiple hard links)"<<endl;
         }
         
-        // File ID
+        //File ID
         fileId = (static_cast<ULONGLONG>(lpFileInformation.nFileIndexHigh)<<32) | lpFileInformation.nFileIndexLow;
         cout<<"Unique file ID: 0x"<<hex<<fileId<<dec<<endl;
-        
-        cout<<"----------------------------------------"<<endl;
+
     }
     else{
         cout<<"Error getting file information! Error code: "<<GetLastError()<<endl;
@@ -517,18 +374,20 @@ void GetFileInformation(const string& filePath){
     CloseHandle(hInfFile);
 }
 
-void GetFileTimes(const string& filePath){
-    FILETIME createTime, accessTime, writeTime;
+void showFileTimeInfo(const string& filePath){
+    FILETIME createTime;
+    FILETIME accessTime;
+    FILETIME writeTime;
     
     HANDLE hFile = CreateFile(
-        filePath.c_str(),
-        GENERIC_READ,
-        FILE_SHARE_READ,
-        NULL,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL
-    );
+        filePath.c_str(),    // Путь к файлу
+        GENERIC_READ,        // Запрашиваем доступ только на чтение
+        FILE_SHARE_READ,     // Разрешаем другим процессам читать файл
+        NULL,                // Атрибуты безопасности (стандартные)
+        OPEN_EXISTING,       // Открываем только существующий файл
+        FILE_ATTRIBUTE_NORMAL, // Обычный файл
+        NULL                 // Не используем шаблон файла
+    );  
     
     if(hFile == INVALID_HANDLE_VALUE){
         cout<<"Error opening file! Error code: "<<GetLastError()<<endl;
@@ -536,13 +395,11 @@ void GetFileTimes(const string& filePath){
     }
     
     if(GetFileTime(hFile, &createTime, &accessTime, &writeTime)){
-        cout<<"\n=== File Time Information ==="<<endl;
+        cout<<"\nFile Time Information:"<<endl;
         cout<<"File: "<<filePath<<endl;
-        cout<<"----------------------------------------"<<endl;
-       printFileTimeForTime(createTime, "Created");
-       printFileTimeForTime(accessTime, "Last accessed");
-       printFileTimeForTime(writeTime, "Last modified");
-        cout<<"----------------------------------------"<<endl;
+        printFileTimeForTime(createTime, "Created");
+        printFileTimeForTime(accessTime, "Last accessed");
+        printFileTimeForTime(writeTime, "Last modified");
     }
     else{
         cout<<"Failed to get file time! Error code: "<<GetLastError()<<endl;
@@ -551,7 +408,7 @@ void GetFileTimes(const string& filePath){
     CloseHandle(hFile);
 }
 
-void SetFileTimes(const string& filePath){
+void setFileTime(const string& filePath){
     int TimeID, year, month, day, hour, minute, second;
     DWORD flags, attrs;
     HANDLE hFile;
@@ -564,15 +421,15 @@ void SetFileTimes(const string& filePath){
     }
     
     cout<<"\n=== Current File Times ==="<<endl;
-    GetFileTimes(filePath);
+    showFileTimeInfo(filePath);
     
     cout<<"\n=== Select time mode ==="<<endl;
-    cout<<"1. Set to current system time"<<endl;
-    cout<<"2. Set custom date and time"<<endl;
-    cout<<"3. Set creation time only"<<endl;
-    cout<<"4. Set last access time only"<<endl;
-    cout<<"5. Set last modified time only"<<endl;
-    cout<<"Choose (1-5): ";
+    cout<<"(1) Set to current system time"<<endl;
+    cout<<"(2) Set custom date and time"<<endl;
+    cout<<"(3) Set creation time only"<<endl;
+    cout<<"(4) Set last access time only"<<endl;
+    cout<<"(5) Set last modified time only"<<endl;
+    cout<<"Choose option: ";
     cin >> TimeID;
     
     flags = FILE_ATTRIBUTE_NORMAL;
