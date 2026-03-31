@@ -16,7 +16,7 @@ void TestCopying::doTests(const int _numTests, const FileCopier& _fileCpy, const
         totalRuntime+=static_cast<double>(doOneCycleTest());
     }
     avrgRuntime = totalRuntime/numCycles;
-    std::cout << "Среднее время выполнения (" << numCycles << " циклов): " << avrgRuntime << std::endl;
+    std::cout << "Среднее время выполнения (" << numCycles << " циклов): " << avrgRuntime <<" мс"<< std::endl;
 }
 
 int TestCopying::doOneCycleTest(){

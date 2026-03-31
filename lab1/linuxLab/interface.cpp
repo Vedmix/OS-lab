@@ -95,11 +95,14 @@ void Interface::runCopyTests(){
 
 void Interface::runBlockSizeAutoTest(const int _numTests, const size_t _fileSize, const int numCycles){
     int maxMultipl;
-    std::cout << "Введите максимальный блок копирования (в кб): ";
+    std::cout << "Введите максимальный блок копирования (в кб) (шаг +2): ";
     std::cin >> maxMultipl;
-    for(int i=1;i<=maxMultipl;i++){
+    for(int i=1;i<=maxMultipl;i+=2){
         fileCpy.setAlign(1, i);
         std::cout << "Размер блока: " << i << " кб\n";
+        if(i==1){
+            i--;
+        }
         cpyTester.doTests(_numTests, fileCpy, _fileSize, numCycles);
         std::cout << std::endl;
     }
