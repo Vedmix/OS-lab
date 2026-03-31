@@ -66,13 +66,15 @@ void Interface::show(){
 }
 
 void Interface::runCopyTests(){
-    int numTests;
+    int numTests, numCycles;
     size_t fileSize;
     std::cout << "Введите количество файлов для копирования: ";
     std::cin >> numTests;
     std::cout << "Введите размер создаваемых файлов (в килобайтах): ";
     std::cin >> fileSize;
-    cpyTester.doTests(numTests, fileCpy, fileSize);
+    std::cout << "Введите количество прогонов: ";
+    std::cin >> numCycles;
+    cpyTester.doTests(numTests, fileCpy, fileSize, numCycles);
     std::cout << "Тесты завершены\n";
 }
 
