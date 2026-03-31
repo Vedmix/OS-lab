@@ -1,10 +1,6 @@
 #pragma once
 #include <chrono>
-#include <string>
-#include <filesystem>
-#include <iostream>
 #include <fstream>
-#include <vector>
 #include "FileCopier.hpp"
 
 class TestCopying
