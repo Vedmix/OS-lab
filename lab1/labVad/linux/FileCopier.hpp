@@ -20,7 +20,7 @@ public:
     bool copyFile(const std::string& srcPath, const std::string& destDir);
 
     FileCopier& operator=(const FileCopier& _fileCpy);
-    void setAlign(const size_t _ALIGN, const int blockSizeMultiplier);
+    void setAlign(const size_t _ALIGN, const int blockSizeMultiplier); //ALIGN в килобайтах
     void setOverlapCount(const int _overlapCount);
 
     size_t getAlign();

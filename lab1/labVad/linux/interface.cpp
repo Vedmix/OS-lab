@@ -66,14 +66,61 @@ void Interface::show(){
 }
 
 void Interface::runCopyTests(){
-    int numTests;
+    int numTests, numCycles;
     size_t fileSize;
+    char userChoice;
     std::cout << "Введите количество файлов для копирования: ";
     std::cin >> numTests;
     std::cout << "Введите размер создаваемых файлов (в килобайтах): ";
     std::cin >> fileSize;
-    cpyTester.doTests(numTests, fileCpy, fileSize);
+    std::cout << "Введите количество прогонов: ";
+    std::cin >> numCycles;
+    std::cout << "Прогнать автотест? (y/n): ";
+    std::cin >> userChoice;
+    if(userChoice=='y'){
+        std::cout << "Прогнать автотест размера блока, или количества перекрывающих операций (введите 1 или 2): ";
+        std::cin >> userChoice;
+        if(userChoice=='1'){
+            runBlockSizeAutoTest(numTests, fileSize, numCycles);
+        }
+        else if(userChoice=='2'){
+            runOLOAutoTest(numTests, fileSize, numCycles);
+        }
+    }
+    else{
+        cpyTester.doTests(numTests, fileCpy, fileSize, numCycles);
+    }
     std::cout << "Тесты завершены\n";
+}
+
+void Interface::runBlockSizeAutoTest(const int _numTests, const size_t _fileSize, const int numCycles){
+    int maxMultipl;
+    std::cout << "Введите максимальный блок копирования (в кб) (шаг +2): ";
+    std::cin >> maxMultipl;
+    for(int i=1;i<=maxMultipl;i+=2){
+        fileCpy.setAlign(1, i);
+        std::cout << "Размер блока: " << i << " кб\n";
+        if(i==1){
+            i--;
+        }
+        cpyTester.doTests(_numTests, fileCpy, _fileSize, numCycles);
+        std::cout << std::endl;
+    }
+}
+
+void Interface::runOLOAutoTest(const int _numTests, const size_t _fileSize, const int numCycles){
+    int maxOLO;
+    std::cout << "Введите максимальное количество перекрывающих операций (шаг +2): ";
+    std::cin >> maxOLO;
+    for(int i=1;i<=maxOLO;i+=2){
+        fileCpy.setOverlapCount(i);
+        std::cout << "Количество перекрывающих операций: " << i << '\n';
+        if(i==1){
+            i--;
+        }
+        cpyTester.doTests(_numTests, fileCpy, _fileSize, numCycles);
+        std::cout << std::endl;
+    }
 }
 
 void Interface::runFileCopying(){

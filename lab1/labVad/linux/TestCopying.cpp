@@ -6,10 +6,20 @@ TestCopying::TestCopying(){
 }
 TestCopying::~TestCopying(){}
 
-void TestCopying::doTests(const int _numTests, const FileCopier& _fileCpy, const size_t _fileSize){
+void TestCopying::doTests(const int _numTests, const FileCopier& _fileCpy, const size_t _fileSize, const int numCycles){
     numTests=_numTests;
     fileCpy=_fileCpy;
     fileSize=_fileSize*1024;
+    double totalRuntime, avrgRuntime;
+    std::cout << "Тестирование...\n";
+    for(int i=0;i<numCycles;i++){
+        totalRuntime+=static_cast<double>(doOneCycleTest());
+    }
+    avrgRuntime = totalRuntime/numCycles;
+    std::cout << "Среднее время выполнения (" << numCycles << " циклов): " << avrgRuntime <<" мс"<< std::endl;
+}
+
+int TestCopying::doOneCycleTest(){
     if(!std::filesystem::create_directories("filesOrig")){
         deleteAllFilesInDir("filesOrig");
     }
@@ -22,7 +32,7 @@ void TestCopying::doTests(const int _numTests, const FileCopier& _fileCpy, const
     doCopying();
     auto end = std::chrono::high_resolution_clock::now();
     runtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    std::cout << "Время выполнения: " << runtime << " мс\n";
+    return runtime;
 }
 
 void TestCopying::deleteAllFilesInDir(const std::string& dst){

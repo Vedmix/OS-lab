@@ -1,5 +1,4 @@
 #pragma once
-#include <iostream>
 #include "FileCopier.hpp"
 #include "TestCopying.hpp"
 
@@ -13,6 +12,8 @@ private:
     void runChangingAlign();
     void runChangingOverlapCount();
     void runFileDeleting();
+    void runBlockSizeAutoTest(const int _numTests, const size_t _fileSize, const int numCycles);
+    void runOLOAutoTest(const int _numTests, const size_t _fileSize, const int numCycles);
     void showParameteres();
     void showMenu();
 public:

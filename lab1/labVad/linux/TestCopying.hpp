@@ -1,10 +1,6 @@
 #pragma once
 #include <chrono>
-#include <string>
-#include <filesystem>
-#include <iostream>
 #include <fstream>
-#include <vector>
 #include "FileCopier.hpp"
 
 class TestCopying
@@ -19,7 +15,7 @@ private:
 public:
     TestCopying();
     ~TestCopying();
-
-    void doTests(const int _numTests, const FileCopier& _fileCpy, const size_t _fileSize);
+    int doOneCycleTest();
+    void doTests(const int _numTests, const FileCopier& _fileCpy, const size_t _fileSize, const int numCycles);
     void deleteAllFilesInDir(const std::string& dir);
 };
