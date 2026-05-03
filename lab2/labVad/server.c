@@ -1,149 +1,163 @@
+#include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <sys/select.h>
-#include <errno.h>
 
-#define FILENAME  "shared_file.dat"
-#define FILESIZE  4096          //размер файла в байтах
+#define FILENAME    "shared_file.dat"
+#define MAPNAME     "Local\\SharedFileMap"
+#define FILESIZE    4096            //file size in bytes
+#define ACK_OFFSET (FILESIZE - 1) //acknowledgment byte offset
 
-static int   fd  = -1;         //файловый дескриптор
-static char *ptr = MAP_FAILED; //указатель на отображённую память
+static HANDLE hFile    = INVALID_HANDLE_VALUE; //file handle
+static HANDLE hMapping = NULL;                 //mapping handle
+static char  *ptr      = NULL;                 //pointer to mapped memory
 
-
-//Инициализация файла нужного размера
-static int init_file(void)
-{
-    //Заполнение файла нулями до нужного размера
-    char buf[FILESIZE];
-    memset(buf, 0, sizeof(buf));
-    if (lseek(fd, 0, SEEK_SET) == -1 ||
-        write(fd, buf, sizeof(buf)) != sizeof(buf)) {
-        perror("init_file: write");
-        return -1;
-    }
-    return 0;
-}
 
 static void do_map(void)
 {
-    if (ptr != MAP_FAILED) {
-        printf("[ERROR] Файл уже спроецирован.\n");
+    if(ptr != NULL){
+        printf("[ERROR] File is already mapped.\n");
         return;
     }
 
-    fd = open(FILENAME, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-    if (fd == -1) {
-        perror("open");
+    //create file on disk
+    hFile = CreateFileA(
+        FILENAME,
+        GENERIC_READ | GENERIC_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        NULL,
+        CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL
+    );
+    if(hFile == INVALID_HANDLE_VALUE){
+        printf("[ERROR] CreateFile failed with error: %lu\n", GetLastError());
         return;
     }
 
-    if (init_file() != 0) {
-        close(fd);
-        fd = -1;
+    //fill file with zeros up to required size
+    char buf[FILESIZE];
+    memset(buf, 0, sizeof(buf));
+    DWORD written;
+    if(!WriteFile(hFile, buf, FILESIZE, &written, NULL)|| written != FILESIZE){
+        printf("[ERROR] WriteFile failed with error: %lu\n", GetLastError());
+        CloseHandle(hFile);
+        hFile = INVALID_HANDLE_VALUE;
         return;
     }
 
-    ptr = mmap(NULL, FILESIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (ptr == MAP_FAILED) {
-        perror("mmap");
-        close(fd);
-        fd = -1;
+    //create file mapping object
+    hMapping = CreateFileMappingA(
+        hFile,
+        NULL,
+        PAGE_READWRITE,
+        0,
+        FILESIZE,
+        MAPNAME
+    );
+    if(hMapping == NULL){
+        printf("[ERROR] CreateFileMapping failed with error: %lu\n", GetLastError());
+        CloseHandle(hFile);
+        hFile = INVALID_HANDLE_VALUE;
         return;
     }
 
-    printf("[INFO] Файл '%s' создан и спроецирован в память.\n", FILENAME);
-    printf("         Адрес отображения: %p\n", (void *)ptr);
+    //map file into process address space
+    ptr =(char *)MapViewOfFile(hMapping, FILE_MAP_ALL_ACCESS, 0, 0, FILESIZE);
+    if(ptr == NULL){
+        printf("[ERROR] MapViewOfFile failed with error: %lu\n", GetLastError());
+        CloseHandle(hMapping);
+        CloseHandle(hFile);
+        hMapping = NULL;
+        hFile    = INVALID_HANDLE_VALUE;
+        return;
+    }
+
+    printf("[INFO] File '%s' created and mapped into memory.\n", FILENAME);
+    printf("       Mapping name: %s\n", MAPNAME);
+    printf("       Mapping address: %p\n",(void *)ptr);
 }
 
 static void do_write(void)
 {
-    if (ptr == MAP_FAILED) {
-        printf("[ERROR] Сначала выполните проецирование!\n");
+    if(ptr == NULL){
+        printf("[ERROR] Perform mapping first!\n");
         return;
     }
 
     char message[FILESIZE];
-    printf("[Сервер] Введите строку для записи: ");
-    if (fgets(message, sizeof(message), stdin) == NULL) {
-        printf("[ERROR] Ошибка ввода!\n");
+    printf("[Server] Enter string to write: ");
+    if(fgets(message, sizeof(message), stdin)== NULL){
+        printf("[ERROR] Input error!\n");
         return;
     }
-    //удаление перевода строки
+    //remove newline character
     message[strcspn(message, "\n")] = '\0';
 
-    //Запись строки в начало отображённой памяти
-    strncpy(ptr, message, FILESIZE - 1);
-    ptr[FILESIZE - 1] = '\0';
+    //reset acknowledgment byte before writing
+    ptr[ACK_OFFSET] = '\0';
 
-    //Сброс изменения на диск
-    if (msync(ptr, FILESIZE, MS_SYNC) == -1)
-        perror("msync");
+    //write string to the beginning of mapped memory
+    strncpy(ptr, message, FILESIZE - 2);
+    ptr[FILESIZE - 2] = '\0';
 
-    printf("[INFO] Записано: \"%s\"\n", ptr);
-    printf("[INFO] Ожидание клиента...\n");
+    //flush changes to disk
+    if(!FlushViewOfFile(ptr, FILESIZE))
+        printf("[ERROR] FlushViewOfFile: %lu\n", GetLastError());
 
-    //Ожидание подтверждения от клиента('\1' в конеце буфера)
-    int ack_offset = FILESIZE - 1;
-    ptr[ack_offset] = '\0';   //сброс флаг подтверждения
+    printf("[INFO] Written: \"%s\"\n", ptr);
+    printf("[INFO] Waiting for client...\n");
 
-    //Опрос с таймаутом 100 мс
-    struct timeval tv;
+    //wait for client acknowledgment('\1' at the end of buffer)
     int waited = 0;
-    //(ptr[ack_offset]) сигнал о прочтении
-    while (ptr[ack_offset] != '\1') {
-        tv.tv_sec  = 0;
-        tv.tv_usec = 100000; //100 мс
-
-        fd_set rfds;
-        FD_ZERO(&rfds);
-        FD_SET(fd, &rfds);
-        //select() используется только для задержки
-        select(fd + 1, NULL, NULL, NULL, &tv);
+    while(ptr[ACK_OFFSET] != '\1'){
+        Sleep(100); //100 ms
 
         waited++;
-        if (waited % 20 == 0)
-            printf("[INFO] Ожидание подтверждения от клиента... (%d с)\n", waited / 10);
-        if (waited > 300) {   // 30 секунд
-            printf("[INFO] Таймаут ожидания клиента.\n");
+        if(waited % 20 == 0)
+            printf("[INFO] Waiting for client confirmation...(%d s)\n", waited / 10);
+        if(waited > 300){   //30 seconds
+            printf("[INFO] Client wait timeout.\n");
             return;
         }
     }
-    printf("[INFO] Клиент подтвердил прочтение.\n");
+    printf("[INFO] Client confirmed reading.\n");
 }
 
 static void do_exit(void)
 {
-    if (ptr != MAP_FAILED) {
-        munmap(ptr, FILESIZE);
-        ptr = MAP_FAILED;
-        printf("[INFO] Проецирование отменено.\n");
+    if(ptr != NULL){
+        //unmap view
+        UnmapViewOfFile(ptr);
+        ptr = NULL;
+        printf("[INFO] View unmapped.\n");
     }
-    if (fd != -1) {
-        close(fd);
-        fd = -1;
+    if(hMapping != NULL){
+        CloseHandle(hMapping);
+        hMapping = NULL;
     }
-    if (unlink(FILENAME) == 0)
-        printf("[INFO] Файл '%s' удалён.\n", FILENAME);
-    else if (errno != ENOENT)
-        perror("unlink");
+    if(hFile != INVALID_HANDLE_VALUE){
+        CloseHandle(hFile);
+        hFile = INVALID_HANDLE_VALUE;
+    }
 
-    printf("[INFO] Работа завершена.\n");
+    //delete file from disk
+    if(DeleteFileA(FILENAME))
+        printf("[INFO] File '%s' deleted.\n", FILENAME);
+    else if(GetLastError()!= ERROR_FILE_NOT_FOUND)
+        printf("[ERROR] DeleteFile failed with error: %lu\n", GetLastError());
+
+    printf("[INFO] Server terminated.\n");
     exit(EXIT_SUCCESS);
 }
 
-
 static void print_menu(void)
 {
-    printf("\n    Меню сервера:\n");
-    printf("(1)Выполнить проецирование\n");
-    printf("(2)Записать данные\n");
-    printf("(3)Завершить работу\n");
-    printf("Выберите пункт: ");
+    printf("\n    Server menu:\n");
+    printf("(1)Perform mapping\n");
+    printf("(2)Write data\n");
+    printf("(3)Exit\n");
+    printf("Choose an option: ");
 }
 
 int main(void)
@@ -151,20 +165,20 @@ int main(void)
     char line[64];
     int  choice;
 
-    printf("[INFO] Сервер запущен. PID = %d\n", getpid());
+    printf("[INFO] Server started. PID = %lu\n", GetCurrentProcessId());
 
-    for (;;) {
+    for(;;){
         print_menu();
-        if (fgets(line, sizeof(line), stdin) == NULL)
+        if(fgets(line, sizeof(line), stdin)== NULL)
             break;
         choice = atoi(line);
 
-        switch (choice) {
+        switch(choice){
         case 1: do_map();   break;
         case 2: do_write(); break;
         case 3: do_exit();  break;
         default:
-            printf("[ERROR] Неверный пункт меню!\n");
+            printf("[ERROR] Invalid menu option!\n");
         }
     }
 
